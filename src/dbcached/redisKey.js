@@ -1,5 +1,5 @@
 import _debug from 'debug';
-const debug = _debug('app:dbcached:redisKey');
+const debug = _debug('yh:mongo:dbcached:redisKey');
 
 export const SEPARATOR = '##';
 /**

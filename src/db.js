@@ -1,5 +1,5 @@
 import _debug from 'debug';
-const debug = _debug('app:mongo');
+const debug = _debug('yh:mongo:db');
 import mongoose from 'mongoose';
 
 /**
@@ -22,13 +22,6 @@ export function connectDatabase(url, schemas) {
 
     reconnectTries: Number.MAX_VALUE // 无限重连的节奏
   });
-  conn
-    .then(ret => {
-      debug(`connectDatabase ${url} ok`);
-    })
-    .catch(error => {
-      debug(`connectDatabase ${url} error`, error);
-    });
 
   [
     'connecting',
@@ -64,20 +57,38 @@ export function connectDatabase(url, schemas) {
     return false;
   });
 
-  return conn;
+  return conn
+    .then(ret => {
+      debug(`connectDatabase ${url} ok`);
+      return conn;
+    })
+    .catch(error => {
+      debug(`connectDatabase ${url} error`, error);
+      return conn;
+    });
+
+
+  // return conn;
 }
 
 export var conns = {};
-export var conn0 = null;
+// export var conn0 = null;
 
-export function initDb (url, schemas, name) {
+export async function initDb (url, schemas, name) {
   if (!name) name='default';
-  let conn = connectDatabase(url, schemas);
+  let conn = await  connectDatabase(url, schemas);
   conns[name] = conn;
-  if (!conn0) conn0 = conn;
+  if (!conns['default']) conns['default'] = conn;
+  // if (!conn0) conn0 = conn;
   return  conn;
 }
 
-export default conn0;
+export function $db(name) {
+  if (!name) name='default';
+  let conn = conns[name];
+  debug('$db',name, conn && conn.name);
+  return conn;
+}
+// export default conn0;
 // export var conns;
 

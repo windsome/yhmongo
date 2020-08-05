@@ -1,5 +1,5 @@
 import _debug from 'debug';
-const debug = _debug('app:mongo');
+const debug = _debug('yh:mongo:schemas');
 import { Schema } from 'mongoose';
 import mongoose_delete from 'mongoose-delete';
 

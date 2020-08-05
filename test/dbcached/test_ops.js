@@ -1,7 +1,16 @@
 // DEST=dev DEBUG="app:*" node ./test_ops.js
 
 require('babel-register');
-var ops = require('../../src/dbcached/ops');
+const _debug = require('debug').default;
+const debug = _debug('test:cached:query');
+var mongo = require('../../lib');
+var cached = require('../../lib/dbcached');
+const schemas = require('../schemas').schemas;
+
+mongo.initDb('mongodb://admin:admin@localhost:27017/test_eshop?authSource=admin',schemas).then(ret => {
+  cached.initRedis('redis://:1234567890@localhost:6379/1')
+  cached.initBull('redis://:1234567890@localhost:6379/2')
+  cached.initExpire();
 
 /**
  * 基础方法:
@@ -19,20 +28,20 @@ var ops = require('../../src/dbcached/ops');
  */
 Promise.resolve(1)
   .then(ret => {
-    return ops
+    return cached
       ._retrieve('mark', { limit: 10 })
       .then(ret => {
-        console.log('_retrieve result:', JSON.stringify(ret));
-        return ops._retrieve('mark', { limit: 10, skip: 10 });
+        debug('_retrieve result:', JSON.stringify(ret));
+        return cached._retrieve('mark', { limit: 10, skip: 10 });
       })
       .then(ret => {
-        console.log('_retrieve result:', JSON.stringify(ret));
+        debug('_retrieve result:', JSON.stringify(ret));
         return ret;
       });
   })
   .then(ret => {
-    console.log('begin test *One');
-    return ops
+    debug('begin test *One');
+    return cached
       ._createOne('mark', {
         status: 0,
         author: '5ba27cc3a70db45dd108b541',
@@ -40,30 +49,30 @@ Promise.resolve(1)
         target: '5ba5b9632e0d697f5cbedf45'
       })
       .then(result => {
-        console.log('_createOne result:', result);
-        return ops._updateOne('mark', { _id: result._id }, { status: 2 });
+        debug('_createOne result:', result);
+        return cached._updateOne('mark', { _id: result._id }, { status: 2 });
       })
       .then(result => {
-        console.log('_updateOne result:', result);
-        return ops._findOne('mark', { table: 'postTest' });
+        debug('_updateOne result:', result);
+        return cached._findOne('mark', { table: 'postTest' });
       })
       .then(result => {
         var id = result.result.result[0];
-        console.log('_findOne result:', result, ', id:', id);
-        return ops._deleteOne('mark', { _id: id });
+        debug('_findOne result:', result, ', id:', id);
+        return cached._deleteOne('mark', { _id: id });
       })
       .then(result => {
-        console.log('_deleteOne result:', result);
+        debug('_deleteOne result:', result);
         return result;
       });
   })
   .then(ret => {
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('begin test *OneById');
-    return ops
+    debug('');
+    debug('');
+    debug('');
+    debug('');
+    debug('begin test *OneById');
+    return cached
       ._createOne('mark', {
         status: 0,
         author: '5ba27cc3a70db45dd108b541',
@@ -71,28 +80,28 @@ Promise.resolve(1)
         target: '5ba5b9632e0d697f5cbedf45'
       })
       .then(result => {
-        console.log('_createOne result:', result);
-        return ops._updateOneById('mark', result._id);
+        debug('_createOne result:', result);
+        return cached._updateOneById('mark', result._id);
       })
       .then(result => {
-        console.log('_updateOneById result:', result);
-        return ops._findOneById('mark', result._id);
+        debug('_updateOneById result:', result);
+        return cached._findOneById('mark', result._id);
         // }).then(result=>{
         //     var id = result.result.result[0];
-        //     console.log('_findOneById result:', result, ', id:', id);
+        //     debug('_findOneById result:', result, ', id:', id);
         //     return ops._deleteOneById('mark', id);
       })
       .then(result => {
-        console.log('_deleteOneById result:', result);
+        debug('_deleteOneById result:', result);
         return result;
       });
   })
   .then(ret => {
-    console.log('');
-    console.log('');
-    console.log('');
-    console.log('begin test _createMany');
-    return ops
+    debug('');
+    debug('');
+    debug('');
+    debug('begin test _createMany');
+    return cached
       ._createMany('mark', [
         {
           status: 0,
@@ -114,22 +123,24 @@ Promise.resolve(1)
         }
       ])
       .then(ret => {
-        console.log('_createMany result:', ret);
-        return ops._updateMany('mark', { table: 'postTest3' }, { status: 3 });
+        debug('_createMany result:', ret);
+        return cached._updateMany('mark', { table: 'postTest3' }, { status: 3 });
       })
       .then(ret => {
-        console.log('_updateMany result:', ret);
-        return ops._retrieve('mark', {
+        debug('_updateMany result:', ret);
+        return cached._retrieve('mark', {
           where: { table: 'postTest3' },
           limit: 10
         });
       })
       .then(ret => {
-        console.log('_retrieve result:', ret);
+        debug('_retrieve result:', ret);
         return ret;
       });
   })
   .then(ret => {
-    console.log('finish');
+    debug('finish');
     return ret;
   });
+
+});

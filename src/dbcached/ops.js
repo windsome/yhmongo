@@ -70,7 +70,7 @@
  */
 
 import _debug from 'debug';
-const debug = _debug('app:dbcached:ops');
+const debug = _debug('yh:mongo:dbcached:ops');
 import type from '../utils/type';
 import {
   _retrieve as _dbRetrieve,
@@ -86,8 +86,8 @@ import {
   _findOneById as _dbFindOneById,
   _getFirstOfRetrieve as _dbGetFirstOfRetrieve,
   _mergeDbOfResult as _dbMergeDbOfResult
-} from '../dbmongo/ops';
-import $r from '../redis/redis';
+} from '../ops';
+import {$r} from './redis';
 import { getRedisKey } from './redisKey';
 import { emitRedisUpdateEvent, REDIS_UPDATE_ACTION } from './mqExpire';
 
@@ -136,10 +136,10 @@ export async function _retrieve(model, options) {
   let dbFlatCount = dbResult['count'];
   if (!dbFlatSkip) dbFlatSkip = 0;
   // 设置总数c键
-  let resultTmp = await $r.setexAsync(key_c, EX_SECONDS, dbFlatTotal);
+  let resultTmp = await $r().setexAsync(key_c, EX_SECONDS, dbFlatTotal);
   debug('_retrieve setAsync result:', resultTmp);
   // 删除分数区间的内容. ZREMRANGEBYSCORE key min max
-  resultTmp = await $r.zremrangebyscoreAsync(
+  resultTmp = await $r().zremrangebyscoreAsync(
     key_s,
     dbFlatSkip,
     dbFlatSkip + dbFlatResult.length - 1
@@ -152,8 +152,8 @@ export async function _retrieve(model, options) {
     argsArray.push(dbFlatResult[i]);
   }
   if (argsArray.length > 0) {
-    resultTmp = await $r.zaddAsync(key_s, ...argsArray);
-    await $r.expireAsync(key_s, EX_SECONDS);
+    resultTmp = await $r().zaddAsync(key_s, ...argsArray);
+    await $r().expireAsync(key_s, EX_SECONDS);
     debug('_retrieve zaddAsync result:', resultTmp);
   }
   // 遍历entity,设置d键.
@@ -166,7 +166,7 @@ export async function _retrieve(model, options) {
       let id = ids[j];
       let item = collection[id];
       let key_d = getRedisKey(nModel, 'd', id);
-      resultTmp = await $r.setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
+      resultTmp = await $r().setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
     }
   }
 
@@ -182,12 +182,12 @@ export async function _count(model, options) {
   let { where, sort } = options || {};
   let key_c = getRedisKey(model, 'c', where, sort);
   // 查看c-key缓存是否存在.
-  let data_c = await $r.getAsync(key_c);
+  let data_c = await $r().getAsync(key_c);
   if (data_c) {
     return data_c;
   }
   data_c = await _dbCount(model, options);
-  await $r.setexAsync(key_c, EX_SECONDS, data_c);
+  await $r().setexAsync(key_c, EX_SECONDS, data_c);
   return data_c;
 }
 
@@ -205,7 +205,7 @@ export async function _createOne(model, args) {
   }
   // 插入redis缓存.
   let key_d = getRedisKey(model, 'd', item._id);
-  let result = await $r.setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
+  let result = await $r().setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
   debug('_createOne to redis', key_d, result);
   await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.CREATE_ONE, item._id);
   return res;
@@ -222,8 +222,8 @@ export async function _deleteOne(model, where, options) {
   if (item) {
     let key_d = getRedisKey(model, 'd', item._id);
     let key_s = getRedisKey(model, 's', { _id: item._id });
-    let result1 = await $r.delAsync(key_d);
-    let result2 = await $r.delAsync(key_s);
+    let result1 = await $r().delAsync(key_d);
+    let result2 = await $r().delAsync(key_s);
     debug('_deleteOne from redis', key_d, key_s, result1, result2);
     await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.REMOVE_ONE, item._id);
   }
@@ -246,7 +246,7 @@ export async function _updateOne(model, where, args, options = { new: true }) {
   }
 
   let key_d = getRedisKey(model, 'd', item._id);
-  let result = await $r.setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
+  let result = await $r().setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
   debug('_updateOne to redis', key_d, result);
   await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.UPDATE_ONE, item._id);
   return res;
@@ -277,7 +277,7 @@ export async function _createMany(model, items) {
       let id = ids[j];
       let item = collection[id];
       let key_d = getRedisKey(nModel, 'd', id);
-      let resultTmp = await $r.setexAsync(
+      let resultTmp = await $r().setexAsync(
         key_d,
         EX_SECONDS,
         JSON.stringify(item)
@@ -368,7 +368,7 @@ async function _retrieveFromRedis(model, options) {
   );
 
   // 查看c-key缓存是否存在.
-  let data_c = await $r.getAsync(key_c);
+  let data_c = await $r().getAsync(key_c);
   debug('_retrieveFromRedis getAsync', key_c, data_c);
   if (!data_c) {
     return null;
@@ -384,7 +384,7 @@ async function _retrieveFromRedis(model, options) {
   }
   let count = score2 - score1;
 
-  let data = await $r.zrangebyscoreAsync(key_s, score1, score2 - 1);
+  let data = await $r().zrangebyscoreAsync(key_s, score1, score2 - 1);
   debug('_retrieve zrangebyscore', score1, score2 - 1, data);
   if (!data || data.length < count) {
     // 缓存s-key空或者数据不够,触发db查询.
@@ -392,8 +392,8 @@ async function _retrieveFromRedis(model, options) {
     // TODO: 每次最后一页都触发db查询.(删除了记录,但没更新相关的c-key查询)
     return null;
   }
-  await $r.expireAsync(key_s, EX_SECONDS);
-  await $r.expireAsync(key_c, EX_SECONDS);
+  await $r().expireAsync(key_s, EX_SECONDS);
+  await $r().expireAsync(key_c, EX_SECONDS);
 
   // 缓存数据够了. 处理返回数据
   let items = [];
@@ -419,13 +419,13 @@ async function _retrieveFromRedis(model, options) {
   let missing = [];
   for (let i = 0; i < data.length; i++) {
     let key_d = getRedisKey(model, 'd', data[i]);
-    let item = await $r.getAsync(key_d);
+    let item = await $r().getAsync(key_d);
     if (!item) {
       debug('warning! missing cache!', key_d);
       missing.push(data[i]);
       continue;
     }
-    await $r.expireAsync(key_d, EX_SECONDS);
+    await $r().expireAsync(key_d, EX_SECONDS);
     item = JSON.parse(item);
     items.push(item);
     entityMap[model][data[i]] = item;
@@ -472,9 +472,9 @@ async function _retrieveFromRedis(model, options) {
             for (let i = 0; i < nIds.length; i++) {
               let nId = nIds[i];
               let key_d_populate = getRedisKey(nModel, 'd', nId);
-              let item_populate = await $r.getAsync(key_d_populate);
+              let item_populate = await $r().getAsync(key_d_populate);
               if (entityMap[nModel] && item_populate) {
-                await $r.expireAsync(key_d_populate, EX_SECONDS);
+                await $r().expireAsync(key_d_populate, EX_SECONDS);
                 entityMap[nModel][nId] = JSON.parse(item_populate);
               } else {
                 debug(
@@ -524,13 +524,13 @@ export async function delRedisKey(model, type, where_data, sort_data) {
   if (type == 'd') {
     //当为数据记录型key时,where_data为_id
     let r_key = getRedisKey(model, 'd', where_data);
-    return await $r.delAsync(r_key);
+    return await $r().delAsync(r_key);
   } else if (type == 's' || type == 'w' || type == 'c') {
     let r_key_prefix = getRedisKey(model, type, where_data, sort_data);
-    let r_keys = await $r.keysAsync(r_key_prefix + '*');
+    let r_keys = await $r().keysAsync(r_key_prefix + '*');
     let result = [];
     for (let i = 0; i < r_keys.length; i++) {
-      result.push(await $r.delAsync(r_keys[i]));
+      result.push(await $r().delAsync(r_keys[i]));
     }
     return true;
   } else {

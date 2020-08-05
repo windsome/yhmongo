@@ -1,4 +1,4 @@
-import md5sum from '../utils/md5sum';
+import md5sum from '../../src/utils/md5sum';
 
 const PASSWORD = 'sharks2018';
 

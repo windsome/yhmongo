@@ -23,10 +23,10 @@
  *          并从过时key中删掉过时的那部分.如果没有过时的或者过时key不存在,则继续原步骤.
  */
 import _debug from 'debug';
-const debug = _debug('app:dbcached:mqExpire');
-import type from '../../utils/type';
+const debug = _debug('yh:mongo:dbcached:mqExpire');
+import type from '../utils/type';
 import { SEPARATOR, getRedisKey, parseRedisKey } from './redisKey';
-import $r from '../redis/redis';
+import {$r,$b} from './redis';
 import {
   // _retrieve as _dbRetrieve,
   _retrieveNoTotal as _dbRetrieveNoTotal,
@@ -40,114 +40,110 @@ import {
   // _updateOneById as _dbUpdateOneById,
   // _findOne as _dbFindOne,
   // _findOneById as _dbFindOneById
-} from '../dbmongo/ops';
+} from '../ops';
 import { EX_SECONDS } from './ops';
-import Bull from 'bull';
-import { cfg } from './_base';
 
-let redisUrl = cfg.redis;
 /// Bull队列.
-const BULL_REDIS_UPDATE_KEY_QUEUE = 'redis-update-key-queue';
-debug('创建Bull队列:' + BULL_REDIS_UPDATE_KEY_QUEUE, ', redis=' + redisUrl);
-const redisUpdateKeyQueue = new Bull(BULL_REDIS_UPDATE_KEY_QUEUE, redisUrl);
 // 2. 绑定任务处理函数
-redisUpdateKeyQueue.process(async (job, done) => {
-  let data = job.data;
-  debug(`redisUpdateKeyQueue process ${job.id}, data:${JSON.stringify(data)}`);
-  // debug('redisUpdateKeyQueue process', data);
-  let result = false;
-  try {
-    result = await timelyCheck(data);
-  } catch (error) {
-    debug('error! redisUpdateKeyQueue process!', error);
-  }
-
-  done();
-  // job.moveToCompleted();
-  // await job.finished();
-  return result;
-});
-[
-  'completed',
-  'progress',
-  'error',
-  'waiting',
-  'active',
-  'stalled',
-  'failed',
-  'paused',
-  'resumed',
-  'cleaned',
-  'drained',
-  'removed'
-].map(evt =>
-  redisUpdateKeyQueue.on(evt, (job, ...other) => {
-    if (evt == 'progress') {
-      debug(`${evt} Job ${job.id} is ${other[0] * 100}% ready!`);
-    } else if (evt == 'waiting') {
-      debug(`${evt} Job ${job}`);
-    } else if (evt == 'failed') {
-      debug(`${evt} Job ${job.id}, err ${other[0]}`);
-    } else debug(`${evt} Job ${job && job.id}!`);
-  })
-);
-
-// redisUpdateKeyQueue.on('completed', (job, result) => {
-//   debug(`Job ${job.id} completed with result ${result}`);
-// });
-// redisUpdateKeyQueue.on('progress', (job, progress) => {
-//   debug(`Job ${job.id} is ${progress * 100}% ready!`);
-// });
-// redisUpdateKeyQueue.on('error', function(error) {
-//   debug('error', error);
-// })
-
-// redisUpdateKeyQueue.on('waiting', function(jobId){
-//   debug(`waiting Job ${jobId} !`);
-//   // A Job is waiting to be processed as soon as a worker is idling.
-// });
-
-// redisUpdateKeyQueue.on('active', function(job, jobPromise){
-//   debug(`active Job ${job.id} !`);
-//   // A job has started. You can use `jobPromise.cancel()`` to abort it.
-// })
-
-// redisUpdateKeyQueue.on('stalled', function(job){
-//   debug(`stalled Job ${job.id} !`);
-//   // A job has been marked as stalled. This is useful for debugging job
-//   // workers that crash or pause the event loop.
-// })
-
-// redisUpdateKeyQueue.on('failed', function(job, err){
-//   debug(`failed Job ${job.id}, err ${err} !`);
-//   // A job failed with reason `err`!
-// })
-
-// redisUpdateKeyQueue.on('paused', function(){
-//   debug(`paused`);
-//   // The queue has been paused.
-// })
-
-// redisUpdateKeyQueue.on('resumed', function(job){
-//   debug(`resumed Job ${job.id}!`);
-//   // The queue has been resumed.
-// })
-
-// redisUpdateKeyQueue.on('cleaned', function(jobs, type) {
-//   debug(`cleaned!`);
-//   // Old jobs have been cleaned from the queue. `jobs` is an array of cleaned
-//   // jobs, and `type` is the type of jobs cleaned.
-// });
-
-// redisUpdateKeyQueue.on('drained', function() {
-//   debug(`drained!`);
-//   // Emitted every time the queue has processed all the waiting jobs (even if there can be some delayed jobs not yet processed)
-// });
-
-// redisUpdateKeyQueue.on('removed', function(job){
-//   debug(`removed Job ${job.id}!`);
-//   // A job successfully removed.
-// });
+export function initExpire() {
+  $b().process(async (job, done) => {
+    let data = job.data;
+    debug(`$b() process ${job.id}, data:${JSON.stringify(data)}`);
+    // debug('$b() process', data);
+    let result = false;
+    try {
+      result = await timelyCheck(data);
+    } catch (error) {
+      debug('error! $b() process!', error);
+    }
+  
+    done();
+    // job.moveToCompleted();
+    // await job.finished();
+    return result;
+  });
+  [
+    'completed',
+    'progress',
+    'error',
+    'waiting',
+    'active',
+    'stalled',
+    'failed',
+    'paused',
+    'resumed',
+    'cleaned',
+    'drained',
+    'removed'
+  ].map(evt =>
+    $b().on(evt, (job, ...other) => {
+      if (evt == 'progress') {
+        debug(`${evt} Job ${job.id} is ${other[0] * 100}% ready!`);
+      } else if (evt == 'waiting') {
+        debug(`${evt} Job ${job}`);
+      } else if (evt == 'failed') {
+        debug(`${evt} Job ${job.id}, err ${other[0]}`);
+      } else debug(`${evt} Job ${job && job.id}!`);
+    })
+  );
+  
+  // redisUpdateKeyQueue.on('completed', (job, result) => {
+  //   debug(`Job ${job.id} completed with result ${result}`);
+  // });
+  // redisUpdateKeyQueue.on('progress', (job, progress) => {
+  //   debug(`Job ${job.id} is ${progress * 100}% ready!`);
+  // });
+  // redisUpdateKeyQueue.on('error', function(error) {
+  //   debug('error', error);
+  // })
+  
+  // redisUpdateKeyQueue.on('waiting', function(jobId){
+  //   debug(`waiting Job ${jobId} !`);
+  //   // A Job is waiting to be processed as soon as a worker is idling.
+  // });
+  
+  // redisUpdateKeyQueue.on('active', function(job, jobPromise){
+  //   debug(`active Job ${job.id} !`);
+  //   // A job has started. You can use `jobPromise.cancel()`` to abort it.
+  // })
+  
+  // redisUpdateKeyQueue.on('stalled', function(job){
+  //   debug(`stalled Job ${job.id} !`);
+  //   // A job has been marked as stalled. This is useful for debugging job
+  //   // workers that crash or pause the event loop.
+  // })
+  
+  // redisUpdateKeyQueue.on('failed', function(job, err){
+  //   debug(`failed Job ${job.id}, err ${err} !`);
+  //   // A job failed with reason `err`!
+  // })
+  
+  // redisUpdateKeyQueue.on('paused', function(){
+  //   debug(`paused`);
+  //   // The queue has been paused.
+  // })
+  
+  // redisUpdateKeyQueue.on('resumed', function(job){
+  //   debug(`resumed Job ${job.id}!`);
+  //   // The queue has been resumed.
+  // })
+  
+  // redisUpdateKeyQueue.on('cleaned', function(jobs, type) {
+  //   debug(`cleaned!`);
+  //   // Old jobs have been cleaned from the queue. `jobs` is an array of cleaned
+  //   // jobs, and `type` is the type of jobs cleaned.
+  // });
+  
+  // redisUpdateKeyQueue.on('drained', function() {
+  //   debug(`drained!`);
+  //   // Emitted every time the queue has processed all the waiting jobs (even if there can be some delayed jobs not yet processed)
+  // });
+  
+  // redisUpdateKeyQueue.on('removed', function(job){
+  //   debug(`removed Job ${job.id}!`);
+  //   // A job successfully removed.
+  // });
+}
 
 // // 3. 添加任务
 // const job = await redisUpdateKeyQueue.add({
@@ -161,9 +157,9 @@ export const REDIS_UPDATE_ACTION = {
   CREATE_MANY: 4,
   UPDATE_MANY: 5
 };
-export const REDIS_UPDATE_EVENT_KEY = 'redis_update_event_set'; // 第一级:事件集合
-export const REDIS_UPDATE_SET_KEY = 'redis_update_key_set'; // 第二级: s型key集合
-export const REDIS_UPDATE_SET_CKEY = 'redis_update_ckey_set'; // 第二级: c型key集合
+const REDIS_UPDATE_EVENT_KEY = 'redis_update_event_set'; // 第一级:事件集合
+const REDIS_UPDATE_SET_KEY = 'redis_update_key_set'; // 第二级: s型key集合
+const REDIS_UPDATE_SET_CKEY = 'redis_update_ckey_set'; // 第二级: c型key集合
 
 /**
  * 首先将触发的事件写入event集合,后续解析得到key进入key集合.
@@ -174,13 +170,13 @@ export const REDIS_UPDATE_SET_CKEY = 'redis_update_ckey_set'; // 第二级: c型
 export async function emitRedisUpdateEvent(model, action, ids) {
   let timestamp = new Date().getTime();
   let item = { model, action, ids };
-  let result = await $r.zaddAsync(
+  let result = await $r().zaddAsync(
     REDIS_UPDATE_EVENT_KEY,
     timestamp,
     JSON.stringify(item)
   );
 
-  const job = await redisUpdateKeyQueue.add({
+  const job = await $b().add({
     action
   });
   debug(`emitRedisUpdateEvent create job ${job.id}`, { type: 1, action });
@@ -197,10 +193,10 @@ export async function emitRedisUpdateEvent(model, action, ids) {
  */
 export async function timelyCheck() {
   // 1. 遍历REDIS_UPDATE_EVENT_KEY
-  let count = await $r.zcardAsync(REDIS_UPDATE_EVENT_KEY);
+  let count = await $r().zcardAsync(REDIS_UPDATE_EVENT_KEY);
   while (count > 0) {
     //  ZRANGE salary 0 -1 WITHSCORES
-    let result = await $r.zrangeAsync(
+    let result = await $r().zrangeAsync(
       REDIS_UPDATE_EVENT_KEY,
       0,
       0,
@@ -208,27 +204,27 @@ export async function timelyCheck() {
     );
     debug('timelyCheck', REDIS_UPDATE_EVENT_KEY, result);
     if (result && result.length > 0) {
-      await $r.zremAsync(REDIS_UPDATE_EVENT_KEY, result[0]);
+      await $r().zremAsync(REDIS_UPDATE_EVENT_KEY, result[0]);
       let event = JSON.parse(result[0]);
       await dealEvent(event);
     }
     // 继续下一步,看是否取完.
-    count = await $r.zcardAsync(REDIS_UPDATE_EVENT_KEY);
+    count = await $r().zcardAsync(REDIS_UPDATE_EVENT_KEY);
   }
 
   // 2. 找REDIS_UPDATE_SET_KEY中最旧的一个key,进行更新.
-  let result = await $r.zrangeAsync(REDIS_UPDATE_SET_KEY, 0, 0, 'withscores');
+  let result = await $r().zrangeAsync(REDIS_UPDATE_SET_KEY, 0, 0, 'withscores');
   debug('timelyCheck', REDIS_UPDATE_SET_KEY, result);
   if (result && result.length > 0) {
-    await $r.zremAsync(REDIS_UPDATE_SET_KEY, result[0]);
+    await $r().zremAsync(REDIS_UPDATE_SET_KEY, result[0]);
     await dealSKey(result[0]);
   }
 
   // 3. 如果REDIS_UPDATE_SET_KEY中还有键值,则继续插入事务队列.
-  count = await $r.zcardAsync(REDIS_UPDATE_SET_KEY);
+  count = await $r().zcardAsync(REDIS_UPDATE_SET_KEY);
   if (count > 0) {
     // 4. 添加任务
-    const job = await redisUpdateKeyQueue.add({
+    const job = await $b().add({
       count
     });
     debug(`timelyCheck create job ${job.id}`, { type: 2, count });
@@ -256,7 +252,7 @@ export async function dealEvent(event) {
   // 2. 去除c:{_id:xxxx}型key.
   // 3. 将剩下的key插入到有序集合redis_update_key_set中.
   let r_key_prefix = model + SEPARATOR + 'c';
-  let r_keys = await $r.keysAsync(r_key_prefix + '*');
+  let r_keys = await $r().keysAsync(r_key_prefix + '*');
   debug('dealEvent r_keys', r_key_prefix, r_keys);
   let result = [];
   let reg_s_is_id = new RegExp(
@@ -286,7 +282,7 @@ export async function dealEvent(event) {
   }
   if (result.length > 0) {
     // debug('zaddAsync ' + REDIS_UPDATE_SET_KEY, model, action, ids, result);
-    await $r.zaddAsync(REDIS_UPDATE_SET_KEY, ...result);
+    await $r().zaddAsync(REDIS_UPDATE_SET_KEY, ...result);
   }
   return result;
 }
@@ -315,11 +311,11 @@ export async function dealSKey(r_ckey) {
     where: s_query.where,
     sort: s_query.sort
   });
-  await $r.setexAsync(key_c, EX_SECONDS, data_c);
+  await $r().setexAsync(key_c, EX_SECONDS, data_c);
 
   let r_skey = getRedisKey(model, 's', s_query.where, s_query.sort);
   // 获取所有内容,ZRANGE key start stop [WITHSCORES]
-  let result = await $r.zrangeAsync(r_skey, 0, -1, 'withscores');
+  let result = await $r().zrangeAsync(r_skey, 0, -1, 'withscores');
   if (!result || result.length == 0) {
     // no data in redis. nothing to deal!
     return true;
@@ -393,7 +389,7 @@ export async function dealSKey(r_ckey) {
           let id = ids[j];
           let item = collection[id];
           let key_d = getRedisKey(nModel, 'd', id);
-          let resultTmp = await $r.setexAsync(
+          let resultTmp = await $r().setexAsync(
             key_d,
             EX_SECONDS,
             JSON.stringify(item)
@@ -403,7 +399,7 @@ export async function dealSKey(r_ckey) {
       }
 
       // 删除分数区间的内容. ZREMRANGEBYSCORE key min max
-      let resultTmp = await $r.zremrangebyscoreAsync(
+      let resultTmp = await $r().zremrangebyscoreAsync(
         r_skey,
         dbFlatSkip,
         dbFlatSkip + limit - 1
@@ -416,9 +412,9 @@ export async function dealSKey(r_ckey) {
         argsArray.push(dbFlatResult[i]);
       }
       if (argsArray.length > 0) {
-        resultTmp = await $r.zaddAsync(r_skey, ...argsArray);
+        resultTmp = await $r().zaddAsync(r_skey, ...argsArray);
         debug('dealRedisUpdate zaddAsync result:', r_skey, resultTmp);
-        await $r.expireAsync(r_skey, EX_SECONDS);
+        await $r().expireAsync(r_skey, EX_SECONDS);
       }
     }
   }

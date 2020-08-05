@@ -1,12 +1,11 @@
 // DEST=dev DEBUG="app:*" node ./test_init.js
 
 require('babel-register');
-require('./test_conn');
-var db0 = require('../lib/db').default;
+require('./test_conns');
 var ops = require('../lib/ops');
 // console.log('db0:', db0);
 
-var mark = db0.models['mark'].modelName;
+var mark = $db().models['mark'].modelName;
 console.log('mark:', mark);
 
 /**

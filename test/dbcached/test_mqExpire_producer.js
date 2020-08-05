@@ -1,34 +1,42 @@
-// DEST=dev DEBUG="app:*" node ./test_mqExpire_producer.js
+// DEBUG="yh*,test*" node ./test_mqExpire_producer.js 
 
 require('babel-register');
-var mq = require('../../src/dbcached/mqExpire');
-var key = require('../../src/dbcached/redisKey');
-var ops = require('../../src/dbcached/ops');
+const _debug = require('debug').default;
+const debug = _debug('test:cached:producer');
+var mongo = require('../../lib');
+var cached = require('../../lib/dbcached');
+const schemas = require('../schemas').schemas;
 
-/**
- * 测试
- */
-Promise.resolve(1)
-  .then(ret => {
-    return ops
-      ._createOne('mark', {
-        status: 0,
-        author: '5ba27cc3a70db45dd108b541',
-        table: 'postTest',
-        target: '5ba5b9632e0d697f5cbedf45'
-      })
-      .then(result => {
-        console.log('_createOne result:', result);
-        return result;
-      });
-  })
-  .then(ret => {
-    return mq.emitRedisUpdateEvent('mark', mq.REDIS_UPDATE_ACTION.CREATE_ONE);
-  })
-  // .then(ret => {
-  //   return mq.emitRedisUpdateEvent('mark', mq.REDIS_UPDATE_ACTION.CREATE_ONE, '1111');
-  // })
-  .then(ret => {
-    console.log('finish', ret);
-    return ret;
-  });
+mongo.initDb('mongodb://admin:admin@localhost:27017/test_eshop?authSource=admin',schemas).then(ret => {
+  cached.initRedis('redis://:1234567890@localhost:6379/1')
+  cached.initBull('redis://:1234567890@localhost:6379/2')
+  cached.initExpire();
+  
+  /**
+   * 测试
+   */
+  Promise.resolve(1)
+    .then(ret => {
+      return cached
+        ._createOne('user', {
+          status: 0,
+          num: 10001,
+          nickname: 'user1',
+        })
+        .then(result => {
+          console.log('_createOne result:', result);
+          return result;
+        });
+    })
+    .then(ret => {
+      return cached.emitRedisUpdateEvent('mark', cached.REDIS_UPDATE_ACTION.CREATE_ONE);
+    })
+    // .then(ret => {
+    //   return cached.emitRedisUpdateEvent('mark', mq.REDIS_UPDATE_ACTION.CREATE_ONE, '1111');
+    // })
+    .then(ret => {
+      console.log('finish', ret);
+      return ret;
+    });
+  
+})

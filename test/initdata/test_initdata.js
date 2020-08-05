@@ -1,7 +1,7 @@
 // DEST=dev DEBUG="app:*" node ./test_initdata.js
 
 require('babel-register');
-var init_database = require('../../src/initdata/index').default;
+var init_database = require('./').default;
 
 /**
  * 基础方法:

@@ -1,8 +1,8 @@
 import _debug from 'debug';
-const debug = _debug('app:dbmongo:initdata');
+const debug = _debug('yh:mongo:test:initdata');
 import data_user from './data_user';
 import data_setting from './data_setting';
-import * as ops from '../ops';
+import * as ops from '../../src/ops';
 
 export const init_setting = async arr => {
   for (let i = 0; i < arr.length; i++) {

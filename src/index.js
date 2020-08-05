@@ -1,4 +1,6 @@
-export { connectDatabase, initDb, conn0 as db, conns } from './db';
+export { initDb, $db, conns } from './db';
+
+export {ErrCode, EC, EM} from './Errcode';
 
 export {
   _retrieve,

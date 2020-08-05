@@ -41,7 +41,7 @@
  */
 
 import _debug from 'debug';
-const debug = _debug('app:dbmongo:ops');
+const debug = _debug('yh:mongo:ops');
 import type from './utils/type';
 import { schema, normalize } from 'normalizr';
 import { camelizeKeys } from 'humps';
@@ -49,7 +49,7 @@ import memoize from 'lodash/memoize';
 // import stringify from 'json-stable-stringify';
 import { stringify } from 'flatted';
 import Errcode, { EC } from './Errcode';
-import db from './db';
+import {$db} from './db';
 
 /**
  * 基础方法:
@@ -89,7 +89,7 @@ import db from './db';
  */
 export async function _retrieve(model, options) {
   debug('_retrieve', model, options);
-  let dbModel = db.models[model];
+  let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
   }
@@ -107,7 +107,7 @@ export async function _retrieve(model, options) {
 
 export async function _retrieveNoTotal(model, options) {
   debug('_retrieveNoTotal', model, options);
-  let dbModel = db.models[model];
+  let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
   }
@@ -123,7 +123,7 @@ export async function _retrieveNoTotal(model, options) {
       let populate = populates[i];
       if (populate) {
         let { model: nModel, ...restPopulate } = populate;
-        let nDbModel = db.models[nModel];
+        let nDbModel = $db().models[nModel];
         if (nDbModel && populate.path)
           query = query.populate({
             ...restPopulate,
@@ -152,7 +152,7 @@ export async function _retrieveNoTotal(model, options) {
  */
 export async function _count(model, options) {
   debug('_count', model, options);
-  let dbModel = db.models[model];
+  let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
   }
@@ -168,7 +168,7 @@ export async function _count(model, options) {
  */
 export async function _createOne(model, args) {
   debug('_createOne', model, args);
-  let dbModel = db.models[model];
+  let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
   }
@@ -199,11 +199,11 @@ export async function _createOne(model, args) {
  */
 export async function _deleteOne(model, where, options) {
   debug('_deleteOne', model, where, options);
-  // let item = await db.models[model].findOneAndDelete(where, options);
+  // let item = await $db().models[model].findOneAndDelete(where, options);
   // item = item && item.toObject();
   // return item;
 
-  let dbModel = db.models[model];
+  let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
   }
@@ -224,7 +224,7 @@ export async function _deleteOne(model, where, options) {
  */
 export async function _updateOne(model, where, args, options = { new: true }) {
   debug('_updateOne', model, where, args, options);
-  let dbModel = db.models[model];
+  let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
   }
@@ -253,7 +253,7 @@ export async function _updateOne(model, where, args, options = { new: true }) {
  */
 export async function _createMany(model, items) {
   debug('_createMany', model, items);
-  let dbModel = db.models[model];
+  let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
   }
@@ -283,7 +283,7 @@ export async function _createMany(model, items) {
  */
 export async function _updateMany(model, where, args, options) {
   debug('_updateMany', model, where, args, options);
-  let dbModel = db.models[model];
+  let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
   }

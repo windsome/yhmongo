@@ -1,12 +1,10 @@
-// DEBUG="app:*" node ./test_conn.js
+// DEBUG="app:*" node ./test_conns.js
 
 require('babel-register');
 const _debug = require('debug').default;
-const debug = _debug('app:test_conn');
+const debug = _debug('app:test:schemas');
 const Schema = require('mongoose').Schema;
 const mongoose_delete = require('mongoose-delete');
-var initDb = require('../lib/index').initDb;
-var conn0 = require('../lib/index').db;
 
 /**
  * @api {GET} /apis/v1/rest/user 表User
@@ -44,17 +42,25 @@ const User = new Schema(
     versionKey: false
   }
 );
+
+const Mark = new Schema(
+  {
+    status: { type: Number, index: true, default: 0 },
+    author: {type: Schema.Types.ObjectId, default: null},
+    table: { type: String, default: '' },
+    target: {type: Schema.Types.ObjectId, default: null},
+  },
+  {
+    timestamps: true,
+    versionKey: false
+  }
+);
+
 // plugin delete.
 User.plugin(mongoose_delete, { overrideMethods: true });
 
 // schemas map.
-const schemas = {
-  User
+export const schemas = {
+  User,
+  Mark
 };
-
-let conn1 = initDb('mongodb://admin:admin@localhost:27017/test_eshop1?authSource=admin', schemas,'eshop');
-let conn2 = require('../lib/index').db;
-
-// debug('conn0', conn0);
-// debug('conn1', conn1);
-debug('conn2', conn2);
