@@ -81,23 +81,22 @@ export const User = new Schema(
     address: Schema.Types.Mixed,
     wechat: { type: String, default: '' },
     mybalance: Schema.Types.Mixed,
-    focus :{type :Number ,default :0},
-    fensi :{type :Number ,default :0},
-    getZan :{type :Number ,default :0},
-    msg: {type :Number ,default :0},
-    level:{type :Number ,default :0},
-    integral: {type :Number ,default :0},
-    coin: {type :Number ,default :0},
-    pAuc: {type :Number ,default :0},
-    follow:{type :Number ,default :0},
-    footPrint: {type :Number ,default :0},
+    focus: { type: Number, default: 0 },
+    fensi: { type: Number, default: 0 },
+    getZan: { type: Number, default: 0 },
+    msg: { type: Number, default: 0 },
+    level: { type: Number, default: 0 },
+    integral: { type: Number, default: 0 },
+    coin: { type: Number, default: 0 },
+    pAuc: { type: Number, default: 0 },
+    follow: { type: Number, default: 0 },
+    footPrint: { type: Number, default: 0 }
   },
   {
     timestamps: true,
     versionKey: false
   }
 );
-
 
 /**
  * @api {GET} /apis/v1/rest/userbase 表Userbase
@@ -125,10 +124,10 @@ export const Userbase = new Schema(
     status: { type: Number, index: true, default: 0 },
     num: { type: Number, index: true, default: 0 },
     nickname: { type: String, default: '' },
-    avatar: { type: String, default: ''},
-    level:{type :Number ,default :0},
-    desc: {type: Schema.Types.Mixed, default: null},
-    caps: {type: Schema.Types.Mixed, default: null},
+    avatar: { type: String, default: '' },
+    level: { type: Number, default: 0 },
+    desc: { type: Schema.Types.Mixed, default: null },
+    caps: { type: Schema.Types.Mixed, default: null }
   },
   {
     timestamps: true,
@@ -202,7 +201,7 @@ export const Userextend = new Schema(
     wechat: Schema.Types.Mixed,
     wallet: Schema.Types.Mixed,
     stat: Schema.Types.Mixed,
-    cert: Schema.Types.Mixed,
+    cert: Schema.Types.Mixed
   },
   {
     timestamps: true,
@@ -260,14 +259,14 @@ export const Shop = new Schema(
     status: { type: Number, index: true, default: 0 },
     num: { type: Number, index: true, default: 0 },
     name: { type: String, default: '' },
-    brief: { type: String, default: ''},
-    logo: { type: String, default: ''},
+    brief: { type: String, default: '' },
+    logo: { type: String, default: '' },
     desc: Schema.Types.Mixed,
-    level:{type :Number ,default :0},
-    goodShop:{type :Boolean ,default :false},
+    level: { type: Number, default: 0 },
+    goodShop: { type: Boolean, default: false },
     cert: Schema.Types.Mixed,
     stat: Schema.Types.Mixed,
-    owner: { type: Schema.Types.ObjectId, default: null },
+    owner: { type: Schema.Types.ObjectId, default: null }
   },
   {
     timestamps: true,
@@ -316,7 +315,7 @@ export const Shop = new Schema(
 export const Shopextend = new Schema(
   {
     stat: Schema.Types.Mixed,
-    payment: Schema.Types.Mixed,
+    payment: Schema.Types.Mixed
   },
   {
     timestamps: true,
@@ -370,17 +369,17 @@ export const Product = new Schema(
   {
     status: { type: Number, index: true, default: 0 },
     type: { type: Number, index: true, default: 0 },
-    title:{type: String, default: ''},
-    brief: { type: String, default: ''},
+    title: { type: String, default: '' },
+    brief: { type: String, default: '' },
     summary: Schema.Types.Mixed,
     tags: Schema.Types.Mixed,
     category: Schema.Types.Mixed,
-    priceOrg:{ type :Number ,default :0 },
-    price:{ type :Number ,default :0 },
+    priceOrg: { type: Number, default: 0 },
+    price: { type: Number, default: 0 },
     start: Date,
     expire: Date,
     share: Schema.Types.Mixed,
-    stock:{ type :Number ,default :0 },
+    stock: { type: Number, default: 0 },
     desc: Schema.Types.Mixed,
     shop: { type: Schema.Types.ObjectId, default: null },
     owner: { type: Schema.Types.ObjectId, default: null }
@@ -439,7 +438,7 @@ export const Product = new Schema(
  *          }
  *        },
  *        [productId2]:{...},
- *        ... 
+ *        ...
  *  }
  *  desc: { //订单介绍,(需考虑购物车等集中支付的情况,如果购物车中有多个商家的商品,则拆分成多个订单,但可以是一个支付单)
  *      point: //总抵扣积分
@@ -464,11 +463,11 @@ export const Product = new Schema(
 export const Order = new Schema(
   {
     status: { type: Number, index: true, default: 0 },
-    buyer :{ type: Schema.Types.ObjectId, default: null },
-    seller :{ type: Schema.Types.ObjectId, default: null },
-    shop :{ type: Schema.Types.ObjectId, default: null },
-    payment :{ type: Schema.Types.ObjectId, default: null },
-    products:Schema.Types.Mixed,
+    buyer: { type: Schema.Types.ObjectId, default: null },
+    seller: { type: Schema.Types.ObjectId, default: null },
+    shop: { type: Schema.Types.ObjectId, default: null },
+    payment: { type: Schema.Types.ObjectId, default: null },
+    products: Schema.Types.Mixed,
     desc: Schema.Types.Mixed,
     fee: { type: Number, default: 0 },
     reward: Schema.Types.Mixed,
@@ -479,7 +478,6 @@ export const Order = new Schema(
     versionKey: false
   }
 );
-
 
 /**
  * @api {GET} /apis/v1/rest/room 表room(直播间信息表)
@@ -530,9 +528,9 @@ export const Order = new Schema(
 export const Room = new Schema(
   {
     status: { type: Number, index: true, default: 0 },
-    name:{type: String, default: ''},
-    brief:{type: String, default: ''},
-    image:{type: String, default: ''},
+    name: { type: String, default: '' },
+    brief: { type: String, default: '' },
+    image: { type: String, default: '' },
     share: Schema.Types.Mixed,
     live: Schema.Types.Mixed,
     im: Schema.Types.Mixed,
@@ -546,8 +544,6 @@ export const Room = new Schema(
     versionKey: false
   }
 );
-
-
 
 /**
  * @api {GET} /apis/v1/rest/roomRecord 表Roomrecord(直播间记录表)
@@ -568,19 +564,13 @@ export const Roomrecord = new Schema(
   {
     room: { type: Schema.Types.ObjectId, default: null },
     startAt: { type: Date, default: null },
-    endAt: { type: Date, default: null },
+    endAt: { type: Date, default: null }
   },
   {
     timestamps: true,
     versionKey: false
   }
 );
-
-
-
-
-
-
 
 /**
  * @api {GET} /apis/v1/rest/payment 表payment(付款记录表)
@@ -592,7 +582,7 @@ export const Roomrecord = new Schema(
  * @apiParamExample {json} Request-Example:
  * {
  * _id,付款记录的id
- * status // 状态 0: 草案状态,刚建立付款单 1: 付款成功 2: 付款失败 
+ * status // 状态 0: 草案状态,刚建立付款单 1: 付款成功 2: 付款失败
  * fee //付款单总金额
  * orders:[] // 付款单对应的订单id数组
  * type // 付款类型0: 银行卡支付 1:微信支付 2:支付宝支付
@@ -607,22 +597,17 @@ export const Payment = new Schema(
     status: { type: Number, index: true, default: 0 },
     fee: { type: Number, default: 0 },
     orders: Schema.Types.Mixed,
-    type :{ type: Number, default: 0},
+    type: { type: Number, default: 0 },
     extend: Schema.Types.Mixed,
-    payer :{ type: Schema.Types.ObjectId, default: null },
-    payee :{ type: Schema.Types.ObjectId, default: null },
-    shop :{ type: Schema.Types.ObjectId, default: null },
- },
+    payer: { type: Schema.Types.ObjectId, default: null },
+    payee: { type: Schema.Types.ObjectId, default: null },
+    shop: { type: Schema.Types.ObjectId, default: null }
+  },
   {
     timestamps: true,
     versionKey: false
   }
 );
-
-
-
-
-
 
 // plugin delete.
 

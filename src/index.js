@@ -1,6 +1,6 @@
 export { initDb, $db, conns } from './db';
 
-export {ErrCode, EC, EM} from './Errcode';
+export { ErrCode, EC, EM } from './Errcode';
 
 export {
   _retrieve,

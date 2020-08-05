@@ -87,7 +87,7 @@ import {
   _getFirstOfRetrieve as _dbGetFirstOfRetrieve,
   _mergeDbOfResult as _dbMergeDbOfResult
 } from '../ops';
-import {$r} from './redis';
+import { $r } from './redis';
 import { getRedisKey } from './redisKey';
 import { emitRedisUpdateEvent, REDIS_UPDATE_ACTION } from './mqExpire';
 
@@ -166,7 +166,11 @@ export async function _retrieve(model, options) {
       let id = ids[j];
       let item = collection[id];
       let key_d = getRedisKey(nModel, 'd', id);
-      resultTmp = await $r().setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
+      resultTmp = await $r().setexAsync(
+        key_d,
+        EX_SECONDS,
+        JSON.stringify(item)
+      );
     }
   }
 

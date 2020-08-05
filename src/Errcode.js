@@ -8,7 +8,7 @@ export const EC = {
   ERR_INSERT_DB_FAIL: 40005,
   ERR_UPDATE_DB_FAIL: 40006,
   ERR_ALREADY_EXIST: 40007,
-  ERR_MISS_REQUIRE: 40008,
+  ERR_MISS_REQUIRE: 40008
 };
 
 export const EM = require('./Errcode.cn').default(EC);

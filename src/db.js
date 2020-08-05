@@ -67,28 +67,26 @@ export function connectDatabase(url, schemas) {
       return conn;
     });
 
-
   // return conn;
 }
 
 export var conns = {};
 // export var conn0 = null;
 
-export async function initDb (url, schemas, name) {
-  if (!name) name='default';
-  let conn = await  connectDatabase(url, schemas);
+export async function initDb(url, schemas, name) {
+  if (!name) name = 'default';
+  let conn = await connectDatabase(url, schemas);
   conns[name] = conn;
   if (!conns['default']) conns['default'] = conn;
   // if (!conn0) conn0 = conn;
-  return  conn;
+  return conn;
 }
 
 export function $db(name) {
-  if (!name) name='default';
+  if (!name) name = 'default';
   let conn = conns[name];
-  debug('$db',name, conn && conn.name);
+  debug('$db', name, conn && conn.name);
   return conn;
 }
 // export default conn0;
 // export var conns;
-

@@ -49,7 +49,7 @@ import memoize from 'lodash/memoize';
 // import stringify from 'json-stable-stringify';
 import { stringify } from 'flatted';
 import Errcode, { EC } from './Errcode';
-import {$db} from './db';
+import { $db } from './db';
 
 /**
  * 基础方法:

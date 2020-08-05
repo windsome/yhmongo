@@ -10,7 +10,7 @@ import Bull from 'bull';
 bluebird.promisifyAll(redis);
 
 export var redisClients = {};
-export function initRedis (url, name) {
+export function initRedis(url, name) {
   if (!name) name = 'default';
   let client = redis.createClient(url);
   redisClients[name] = client;
@@ -26,7 +26,7 @@ export function $r(name) {
 }
 
 export var bullClients = {};
-export function initBull (url, name) {
+export function initBull(url, name) {
   if (!name) name = 'default';
   let client = new Bull('redis-update-key-queue', url);
   bullClients[name] = client;

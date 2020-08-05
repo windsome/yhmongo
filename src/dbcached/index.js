@@ -1,4 +1,4 @@
-export { $r, $b, initRedis, initBull } from './redis'
+export { $r, $b, initRedis, initBull } from './redis';
 export {
   _retrieve,
   _count,
@@ -15,6 +15,11 @@ export {
   _getFirstOfRetrieve
 } from './ops';
 
-export {getRedisKey, parseRedisKey} from './redisKey'
+export { getRedisKey, parseRedisKey } from './redisKey';
 // timelyCheck
-export { initExpire, emitRedisUpdateEvent, timelyCheck, REDIS_UPDATE_ACTION } from './mqExpire';
+export {
+  initExpire,
+  emitRedisUpdateEvent,
+  timelyCheck,
+  REDIS_UPDATE_ACTION
+} from './mqExpire';

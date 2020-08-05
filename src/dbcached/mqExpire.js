@@ -26,7 +26,7 @@ import _debug from 'debug';
 const debug = _debug('yh:mongo:dbcached:mqExpire');
 import type from '../utils/type';
 import { SEPARATOR, getRedisKey, parseRedisKey } from './redisKey';
-import {$r,$b} from './redis';
+import { $r, $b } from './redis';
 import {
   // _retrieve as _dbRetrieve,
   _retrieveNoTotal as _dbRetrieveNoTotal,
@@ -56,7 +56,7 @@ export function initExpire() {
     } catch (error) {
       debug('error! $b() process!', error);
     }
-  
+
     done();
     // job.moveToCompleted();
     // await job.finished();
@@ -86,7 +86,7 @@ export function initExpire() {
       } else debug(`${evt} Job ${job && job.id}!`);
     })
   );
-  
+
   // redisUpdateKeyQueue.on('completed', (job, result) => {
   //   debug(`Job ${job.id} completed with result ${result}`);
   // });
@@ -96,49 +96,49 @@ export function initExpire() {
   // redisUpdateKeyQueue.on('error', function(error) {
   //   debug('error', error);
   // })
-  
+
   // redisUpdateKeyQueue.on('waiting', function(jobId){
   //   debug(`waiting Job ${jobId} !`);
   //   // A Job is waiting to be processed as soon as a worker is idling.
   // });
-  
+
   // redisUpdateKeyQueue.on('active', function(job, jobPromise){
   //   debug(`active Job ${job.id} !`);
   //   // A job has started. You can use `jobPromise.cancel()`` to abort it.
   // })
-  
+
   // redisUpdateKeyQueue.on('stalled', function(job){
   //   debug(`stalled Job ${job.id} !`);
   //   // A job has been marked as stalled. This is useful for debugging job
   //   // workers that crash or pause the event loop.
   // })
-  
+
   // redisUpdateKeyQueue.on('failed', function(job, err){
   //   debug(`failed Job ${job.id}, err ${err} !`);
   //   // A job failed with reason `err`!
   // })
-  
+
   // redisUpdateKeyQueue.on('paused', function(){
   //   debug(`paused`);
   //   // The queue has been paused.
   // })
-  
+
   // redisUpdateKeyQueue.on('resumed', function(job){
   //   debug(`resumed Job ${job.id}!`);
   //   // The queue has been resumed.
   // })
-  
+
   // redisUpdateKeyQueue.on('cleaned', function(jobs, type) {
   //   debug(`cleaned!`);
   //   // Old jobs have been cleaned from the queue. `jobs` is an array of cleaned
   //   // jobs, and `type` is the type of jobs cleaned.
   // });
-  
+
   // redisUpdateKeyQueue.on('drained', function() {
   //   debug(`drained!`);
   //   // Emitted every time the queue has processed all the waiting jobs (even if there can be some delayed jobs not yet processed)
   // });
-  
+
   // redisUpdateKeyQueue.on('removed', function(job){
   //   debug(`removed Job ${job.id}!`);
   //   // A job successfully removed.
