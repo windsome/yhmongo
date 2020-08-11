@@ -33,12 +33,13 @@ import _keys from 'lodash/keys';
  * @param {json} item 需要判断的item
  * @param {json} query 查询条件,可能为子条件
  * @param {json} op 操作符,如$and,$or,$in等,外面第一层传入为$and
- * @param {json} attr 属性 
+ * @param {json} attr 属性
  */
-export function itemFulfillQuery (item, query = {}, op='', attr='') {
+export function itemFulfillQuery(item, query = {}, op = '', attr = '') {
   let typeQuery = type(query);
   if (!op) {
-    if (typeQuery =='object') { // json:{} 表示为$and操作.则需每一项条件满足才能匹配.
+    if (typeQuery == 'object') {
+      // json:{} 表示为$and操作.则需每一项条件满足才能匹配.
       op = '$and';
     }
   }
@@ -49,11 +50,13 @@ export function itemFulfillQuery (item, query = {}, op='', attr='') {
         let key = keys[i];
         let nQuery = query[key];
         let result1 = true;
-        if (key.startsWith('$')) { // key为操作符
+        if (key.startsWith('$')) {
+          // key为操作符
           result1 = itemFulfillQuery(item, nQuery, key, attr);
-        } else { // key不是操作符,则为属性名.一般情况下直接判断是否相等
+        } else {
+          // key不是操作符,则为属性名.一般情况下直接判断是否相等
           if (attr) {
-            debug('warning! attr should empty! but is'+attr);
+            debug('warning! attr should empty! but is' + attr);
           }
           result1 = itemFulfillQuery(item, nQuery, '', key);
         }
@@ -67,24 +70,28 @@ export function itemFulfillQuery (item, query = {}, op='', attr='') {
         if (result1) return result1;
       }
       return false;
-    case '$in': {//$in,可以判断item的属性值是否在其中.
+    case '$in': {
+      //$in,可以判断item的属性值是否在其中.
       let attrValue = getItemAttrValue(item, attr);
       return query.indexOf(attrValue) >= 0;
     }
-    case '$gt': { // 判断值是否大于条件中值
+    case '$gt': {
+      // 判断值是否大于条件中值
       let attrValue = getItemAttrValue(item, attr);
       return attrValue > query;
     }
-    case '$lt': { // 判断值是否小于条件中值
+    case '$lt': {
+      // 判断值是否小于条件中值
       let attrValue = getItemAttrValue(item, attr);
       return attrValue < query;
     }
-    case '': { // 判断值是否等于条件中值
+    case '': {
+      // 判断值是否等于条件中值
       let attrValue = getItemAttrValue(item, attr);
       return attrValue == query;
     }
     default: {
-      debug('warning! not support op='+op, query);
+      debug('warning! not support op=' + op, query);
       return false;
     }
   }
@@ -92,10 +99,10 @@ export function itemFulfillQuery (item, query = {}, op='', attr='') {
 
 /**
  * 从item中获取attr的值, attr可能以'.'进行连接.
- * @param {json} item 
- * @param {string} attr 
+ * @param {json} item
+ * @param {string} attr
  */
-export function getItemAttrValue (item, attr='') {
+export function getItemAttrValue(item, attr = '') {
   let value = item;
   let atrs = attr.split('.');
   for (let i = 0; i < atrs.length; i++) {

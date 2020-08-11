@@ -237,7 +237,15 @@ export async function _deleteOne(model, where, options) {
     let result1 = await $r().delAsync(key_d);
     let result2 = await $r().delAsync(key_s);
     let result3 = await $r().delAsync(key_c);
-    debug('_deleteOne from redis', key_d, key_s, key_c, result1, result2, result3);
+    debug(
+      '_deleteOne from redis',
+      key_d,
+      key_s,
+      key_c,
+      result1,
+      result2,
+      result3
+    );
     await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.REMOVE_ONE, item);
   }
   return item;
@@ -268,7 +276,11 @@ export async function _updateOne(model, where, args, options = { new: true }) {
   }
   let result = await $r().setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
   debug('_updateOne to redis', key_d, result);
-  await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.UPDATE_ONE, oldItem?[oldItem,item]:item);
+  await emitRedisUpdateEvent(
+    model,
+    REDIS_UPDATE_ACTION.UPDATE_ONE,
+    oldItem ? [oldItem, item] : item
+  );
   return res;
 }
 
@@ -324,7 +336,11 @@ export async function _createMany(model, items) {
  */
 export async function _updateMany(model, where, args, options) {
   let result = await _dbUpdateMany(model, where, args, options);
-  await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.UPDATE_MANY, result.items);
+  await emitRedisUpdateEvent(
+    model,
+    REDIS_UPDATE_ACTION.UPDATE_MANY,
+    result.items
+  );
   return result;
 }
 
@@ -406,7 +422,7 @@ async function _retrieveFromRedis(model, options) {
         count: 0,
         limit,
         skip
-        }
+      }
     };
   }
 

@@ -150,7 +150,7 @@ export async function emitRedisUpdateEvent(model, action, items) {
     let s_query = parseRedisKey(r_key);
     let match = false;
     for (let j = 0; j < items.length; j++) {
-      if(itemFulfillQuery(items[j],s_query.where)) {
+      if (itemFulfillQuery(items[j], s_query.where)) {
         // 只要匹配到一个item,这个ckey就需要重新查询.
         match = true;
         break;
@@ -177,7 +177,7 @@ export async function emitRedisUpdateEvent(model, action, items) {
   // let s_key_prefix = model + SEPARATOR + 's';
   for (let i = 0; i < result2.length; i++) {
     let r_key = result2[i];
-    await $r().renameAsync(r_key,'x-'+r_key);
+    await $r().renameAsync(r_key, 'x-' + r_key);
   }
 
   // 6. 在任务队列中增加一项.

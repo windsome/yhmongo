@@ -25,12 +25,12 @@ export function getRedisKey(model, type, where_data, sort_data) {
     r_key = model + SEPARATOR + type + SEPARATOR;
     if (where_data) {
       // r_key += JSON.stringify(where_data);
-      r_key += stringify(where_data, stableSort)
+      r_key += stringify(where_data, stableSort);
     }
     r_key += SEPARATOR;
     if (sort_data) {
       // r_key += JSON.stringify(sort_data);
-      r_key += stringify(sort_data, stableSort)
+      r_key += stringify(sort_data, stableSort);
     }
   } else {
     debug('error! not support type:' + type);
