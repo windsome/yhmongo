@@ -14,7 +14,7 @@
  * 2. 列表数据s: retrieve获得，分两部分存储，实体和列表，列表是一个有序集合,内容为id数组,score为数据的排序,key为"<模块名>_s:<json_encode(查询条件)>"。如：
  *   列表值：{ key: 'product_s:{category:2}', value:[_id1,_id2,_id3,_id4,_id5]}
  *   数据值为上面单条d类型
- * 3. 单条查询w: getOne获得，分两部分存储，查询条件及id或id组合(与列表数据s差不多)。
+ * 3. 单条查询(转化成列表数据s查询): _findOneById/_findOne获得，分两部分存储，查询条件及id或id组合(与列表数据s差不多)。
  *   查询条件：{ key: 'product_s:{code:21232}', value:['2']}
  *   数据值为上面单条d类型
  * 4. 条数查询c: 与列表数据查询几乎一致，只是返回条数。
@@ -207,11 +207,18 @@ export async function _createOne(model, args) {
     debug('_createOne fail!');
     return null;
   }
-  // 插入redis缓存.
+  // 插入redis缓存. 首先插入根据_id缓存的ckey及skey
+  let key_c = getRedisKey(model, 'c', { _id: item._id });
+  let key_s = getRedisKey(model, 's', { _id: item._id });
+  let resultTmp = await $r().setexAsync(key_c, EX_SECONDS, 1);
+  resultTmp = await $r().zaddAsync(key_s, 0, item._id.toString());
+  await $r().expireAsync(key_s, EX_SECONDS);
+  // 插入dkey
   let key_d = getRedisKey(model, 'd', item._id);
   let result = await $r().setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
+
   debug('_createOne to redis', key_d, result);
-  await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.CREATE_ONE, item._id);
+  await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.CREATE_ONE, item);
   return res;
 }
 
@@ -225,11 +232,13 @@ export async function _deleteOne(model, where, options) {
   let item = await _dbDeleteOne(model, where, options);
   if (item) {
     let key_d = getRedisKey(model, 'd', item._id);
+    let key_c = getRedisKey(model, 'c', { _id: item._id });
     let key_s = getRedisKey(model, 's', { _id: item._id });
     let result1 = await $r().delAsync(key_d);
     let result2 = await $r().delAsync(key_s);
-    debug('_deleteOne from redis', key_d, key_s, result1, result2);
-    await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.REMOVE_ONE, item._id);
+    let result3 = await $r().delAsync(key_c);
+    debug('_deleteOne from redis', key_d, key_s, key_c, result1, result2, result3);
+    await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.REMOVE_ONE, item);
   }
   return item;
 }
@@ -250,9 +259,16 @@ export async function _updateOne(model, where, args, options = { new: true }) {
   }
 
   let key_d = getRedisKey(model, 'd', item._id);
+  let oldItem = null;
+  let strOldItem = await $r().getAsync(key_d);
+  if (strOldItem) {
+    // 更新前的item在redis中出现,表示曾经被用过,则满足此item的相关查询需要重新查
+    oldItem = JSON.parse(strOldItem);
+    // await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.UPDATE_ONE_PRE, JSON.parse(strOldItem));
+  }
   let result = await $r().setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
   debug('_updateOne to redis', key_d, result);
-  await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.UPDATE_ONE, item._id);
+  await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.UPDATE_ONE, oldItem?[oldItem,item]:item);
   return res;
 }
 
@@ -292,7 +308,7 @@ export async function _createMany(model, items) {
   await emitRedisUpdateEvent(
     model,
     REDIS_UPDATE_ACTION.CREATE_MANY,
-    dbResult['result']
+    result.items
   );
 
   return result;
@@ -308,7 +324,7 @@ export async function _createMany(model, items) {
  */
 export async function _updateMany(model, where, args, options) {
   let result = await _dbUpdateMany(model, where, args, options);
-  await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.UPDATE_MANY);
+  await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.UPDATE_MANY, result.items);
   return result;
 }
 
@@ -372,12 +388,27 @@ async function _retrieveFromRedis(model, options) {
   );
 
   // 查看c-key缓存是否存在.
-  let data_c = await $r().getAsync(key_c);
-  debug('_retrieveFromRedis getAsync', key_c, data_c);
-  if (!data_c) {
+  let data_c_exists = await $r().existsAsync(key_c);
+  if (!data_c_exists) {
     return null;
   }
+
+  let data_c = await $r().getAsync(key_c);
+  debug('_retrieveFromRedis getAsync', key_c, data_c);
   data_c = parseInt(data_c);
+  if (data_c <= 0) {
+    return {
+      items: [],
+      result: {
+        entities: {},
+        result: data,
+        total: data_c,
+        count: 0,
+        limit,
+        skip
+        }
+    };
+  }
 
   // 根据skip和limit及总数data_c计算此次需取的条数.
   let score1 = skip;
@@ -529,7 +560,7 @@ export async function delRedisKey(model, type, where_data, sort_data) {
     //当为数据记录型key时,where_data为_id
     let r_key = getRedisKey(model, 'd', where_data);
     return await $r().delAsync(r_key);
-  } else if (type == 's' || type == 'w' || type == 'c') {
+  } else if (type == 's' || type == 'c') {
     let r_key_prefix = getRedisKey(model, type, where_data, sort_data);
     let r_keys = await $r().keysAsync(r_key_prefix + '*');
     let result = [];

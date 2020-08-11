@@ -21,7 +21,7 @@ export function initRedis(url, name) {
 export function $r(name) {
   if (!name) name = 'default';
   let client = redisClients[name];
-  debug('$r', name, !!client);
+  // debug('$r', name, !!client);
   return client;
 }
 
@@ -37,6 +37,6 @@ export function initBull(url, name) {
 export function $b(name) {
   if (!name) name = 'default';
   let client = bullClients[name];
-  debug('$b', name, !!client);
+  // debug('$b', name, !!client);
   return client;
 }

@@ -26,6 +26,7 @@ import _debug from 'debug';
 const debug = _debug('yh:mongo:dbcached:mqExpire');
 import type from '../utils/type';
 import { SEPARATOR, getRedisKey, parseRedisKey } from './redisKey';
+import { itemFulfillQuery } from './query';
 import { $r, $b } from './redis';
 import {
   // _retrieve as _dbRetrieve,
@@ -86,63 +87,6 @@ export function initExpire() {
       } else debug(`${evt} Job ${job && job.id}!`);
     })
   );
-
-  // redisUpdateKeyQueue.on('completed', (job, result) => {
-  //   debug(`Job ${job.id} completed with result ${result}`);
-  // });
-  // redisUpdateKeyQueue.on('progress', (job, progress) => {
-  //   debug(`Job ${job.id} is ${progress * 100}% ready!`);
-  // });
-  // redisUpdateKeyQueue.on('error', function(error) {
-  //   debug('error', error);
-  // })
-
-  // redisUpdateKeyQueue.on('waiting', function(jobId){
-  //   debug(`waiting Job ${jobId} !`);
-  //   // A Job is waiting to be processed as soon as a worker is idling.
-  // });
-
-  // redisUpdateKeyQueue.on('active', function(job, jobPromise){
-  //   debug(`active Job ${job.id} !`);
-  //   // A job has started. You can use `jobPromise.cancel()`` to abort it.
-  // })
-
-  // redisUpdateKeyQueue.on('stalled', function(job){
-  //   debug(`stalled Job ${job.id} !`);
-  //   // A job has been marked as stalled. This is useful for debugging job
-  //   // workers that crash or pause the event loop.
-  // })
-
-  // redisUpdateKeyQueue.on('failed', function(job, err){
-  //   debug(`failed Job ${job.id}, err ${err} !`);
-  //   // A job failed with reason `err`!
-  // })
-
-  // redisUpdateKeyQueue.on('paused', function(){
-  //   debug(`paused`);
-  //   // The queue has been paused.
-  // })
-
-  // redisUpdateKeyQueue.on('resumed', function(job){
-  //   debug(`resumed Job ${job.id}!`);
-  //   // The queue has been resumed.
-  // })
-
-  // redisUpdateKeyQueue.on('cleaned', function(jobs, type) {
-  //   debug(`cleaned!`);
-  //   // Old jobs have been cleaned from the queue. `jobs` is an array of cleaned
-  //   // jobs, and `type` is the type of jobs cleaned.
-  // });
-
-  // redisUpdateKeyQueue.on('drained', function() {
-  //   debug(`drained!`);
-  //   // Emitted every time the queue has processed all the waiting jobs (even if there can be some delayed jobs not yet processed)
-  // });
-
-  // redisUpdateKeyQueue.on('removed', function(job){
-  //   debug(`removed Job ${job.id}!`);
-  //   // A job successfully removed.
-  // });
 }
 
 // // 3. 添加任务
@@ -155,34 +99,94 @@ export const REDIS_UPDATE_ACTION = {
   UPDATE_ONE: 2,
   REMOVE_ONE: 3,
   CREATE_MANY: 4,
-  UPDATE_MANY: 5
+  UPDATE_MANY: 5,
+  UPDATE_ONE_PRE: 6,
+  UPDATE_MANY_PRE: 7
 };
 const REDIS_UPDATE_EVENT_KEY = 'redis_update_event_set'; // 第一级:事件集合
 const REDIS_UPDATE_SET_KEY = 'redis_update_key_set'; // 第二级: s型key集合
 const REDIS_UPDATE_SET_CKEY = 'redis_update_ckey_set'; // 第二级: c型key集合
 
 /**
- * 首先将触发的事件写入event集合,后续解析得到key进入key集合.
+ * 将{model,items} 相关的所有ckey及skey找到,删除,并加入队列等待后续自动更新.
+ * 1. 找到所有model的ckey
+ * 2. 找到所有能匹配这些items的ckey.
+ * 3. 将所有这些ckey加前缀x-,用来与更新后的做比较.(删掉后,主动的查询将会发起实际的数据库查询,不再用缓存中)
+ * 4. 将所有这些匹配的ckey放入队列中,等待后续查询.
  * @param {string} model 表名
  * @param {integer} action 触发的行为,见上表.
  * @param {array/string} ids 影响的id列表,可以为空.
  */
-export async function emitRedisUpdateEvent(model, action, ids) {
-  let timestamp = new Date().getTime();
-  let item = { model, action, ids };
-  let result = await $r().zaddAsync(
-    REDIS_UPDATE_EVENT_KEY,
-    timestamp,
-    JSON.stringify(item)
-  );
+export async function emitRedisUpdateEvent(model, action, items) {
+  debug('emitRedisUpdateEvent[1]', model, action, items);
+  // 整理items成数组.
+  if (items) {
+    let typeofitems = type(items);
+    if (typeofitems !== 'array') items = [items];
+  }
 
+  // 1. 查询出所有此model的c型key.
+  let r_key_prefix = model + SEPARATOR + 'c';
+  let r_keys = await $r().keysAsync(r_key_prefix + '*');
+  debug('emitRedisUpdateEvent[2]', r_key_prefix, r_keys);
+  // 2. 去除c:{_id:xxxx}型key.(这部分key不用变,增删时已经自动增删,更改时不用变化)
+  let result1 = [];
+  let reg_s_is_id = new RegExp(
+    `${r_key_prefix}${SEPARATOR}{"_id":"[a-z,A-Z,0-9]*"}`
+  );
+  for (let i = 0; i < r_keys.length; i++) {
+    let r_key = r_keys[i];
+    if (reg_s_is_id.test(r_key)) {
+      // 找到ckey:{_id:xxxx}型,主要为根据_id查单条记录.
+      continue;
+    }
+    result1.push(r_key);
+  }
+  debug('emitRedisUpdateEvent[3]', result1);
+  // 3. 找到查询条件能匹配items的ckey
+  let result2 = [];
+  for (let i = 0; i < result1.length; i++) {
+    let r_key = result1[i];
+    let s_query = parseRedisKey(r_key);
+    let match = false;
+    for (let j = 0; j < items.length; j++) {
+      if(itemFulfillQuery(items[j],s_query.where)) {
+        // 只要匹配到一个item,这个ckey就需要重新查询.
+        match = true;
+        break;
+      }
+    }
+    if (match) {
+      result2.push(r_key);
+      continue;
+    }
+  }
+  debug('emitRedisUpdateEvent[4]', result2);
+  // 4. 将result2中ckey插入队列.
+  let result3 = [];
+  for (let i = 0; i < result2.length; i++) {
+    result3.push(new Date().getTime());
+    result3.push(result2[i]);
+  }
+  if (result3.length > 0) {
+    debug('emitRedisUpdateEvent[5]', REDIS_UPDATE_SET_KEY, result3);
+    await $r().zaddAsync(REDIS_UPDATE_SET_KEY, ...result3);
+  }
+
+  // 5. 将result2中所有ckey,skey加前缀'x-',表示为已删除
+  // let s_key_prefix = model + SEPARATOR + 's';
+  for (let i = 0; i < result2.length; i++) {
+    let r_key = result2[i];
+    await $r().renameAsync(r_key,'x-'+r_key);
+  }
+
+  // 6. 在任务队列中增加一项.
   const job = await $b().add({
     action
   });
-  debug(`emitRedisUpdateEvent create job ${job.id}`, { type: 1, action });
-  // debug('emitRedisUpdateEvent create job', { type: 1, action, job });
+  debug(`emitRedisUpdateEvent[5] create job ${job.id}`, { type: 1, action });
 
-  return result;
+  return result3;
 }
 
 /**
@@ -192,36 +196,16 @@ export async function emitRedisUpdateEvent(model, action, ids) {
  * 下次遍历继续进行.
  */
 export async function timelyCheck() {
-  // 1. 遍历REDIS_UPDATE_EVENT_KEY
-  let count = await $r().zcardAsync(REDIS_UPDATE_EVENT_KEY);
-  while (count > 0) {
-    //  ZRANGE salary 0 -1 WITHSCORES
-    let result = await $r().zrangeAsync(
-      REDIS_UPDATE_EVENT_KEY,
-      0,
-      0,
-      'withscores'
-    );
-    debug('timelyCheck', REDIS_UPDATE_EVENT_KEY, result);
-    if (result && result.length > 0) {
-      await $r().zremAsync(REDIS_UPDATE_EVENT_KEY, result[0]);
-      let event = JSON.parse(result[0]);
-      await dealEvent(event);
-    }
-    // 继续下一步,看是否取完.
-    count = await $r().zcardAsync(REDIS_UPDATE_EVENT_KEY);
-  }
-
   // 2. 找REDIS_UPDATE_SET_KEY中最旧的一个key,进行更新.
   let result = await $r().zrangeAsync(REDIS_UPDATE_SET_KEY, 0, 0, 'withscores');
   debug('timelyCheck', REDIS_UPDATE_SET_KEY, result);
   if (result && result.length > 0) {
     await $r().zremAsync(REDIS_UPDATE_SET_KEY, result[0]);
-    await dealSKey(result[0]);
+    await dealCKey(result[0]);
   }
 
   // 3. 如果REDIS_UPDATE_SET_KEY中还有键值,则继续插入事务队列.
-  count = await $r().zcardAsync(REDIS_UPDATE_SET_KEY);
+  let count = await $r().zcardAsync(REDIS_UPDATE_SET_KEY);
   if (count > 0) {
     // 4. 添加任务
     const job = await $b().add({
@@ -234,65 +218,11 @@ export async function timelyCheck() {
 }
 
 /**
- * 当增加,删除,更新操作发生时,需要更新相关model的s型查询操作,
- * 调用此方法,将需更新s型键值插入到更新队列redis_update_key_set.
- * 注意:考虑到效率,需要去掉{_id:xxxx}型查询,但注意{_id:{'$not':xxxx}}型是不能去掉.
- * @param {string} model 表名
- * @param {integer} action 触发的行为,见上表.
- * @param {array/string} ids 影响的id列表,可以为空.
- */
-export async function dealEvent(event) {
-  let { model, action, ids } = event;
-  if (ids) {
-    let typeofids = type(ids);
-    if (typeofids !== 'array') ids = [ids];
-  }
-
-  // 1. 查询出所有此model的c型key.
-  // 2. 去除c:{_id:xxxx}型key.
-  // 3. 将剩下的key插入到有序集合redis_update_key_set中.
-  let r_key_prefix = model + SEPARATOR + 'c';
-  let r_keys = await $r().keysAsync(r_key_prefix + '*');
-  debug('dealEvent r_keys', r_key_prefix, r_keys);
-  let result = [];
-  let reg_s_is_id = new RegExp(
-    `${r_key_prefix}${SEPARATOR}{"_id":"[a-z,A-Z,0-9]*"}`
-  );
-  let timestamp = new Date().getTime();
-  for (let i = 0; i < r_keys.length; i++) {
-    let r_key = r_keys[i];
-    if (reg_s_is_id.test(r_key)) {
-      // TODO: 此类c型key不插入队列: "mark:c:{\"_id\":\"5d80e2d881991576923ccd7e\"}"
-      // TODO: 注意,经测试,发现一般会先查询某个id记录是否存在,导致出现c-key,且内容为0.
-      // TODO: 如果这里不处理,将导致新创建的这条记录找不到.
-      // 目前做了简单判断,影响到的_id都处理更新.
-      let keyFound = false;
-      for (let j = 0; j < ids.length; j++) {
-        if (r_key.indexOf(ids[j]) >= 0) {
-          keyFound = true;
-          break;
-        }
-      }
-      if (!keyFound) {
-        continue;
-      }
-    }
-    result.push(timestamp);
-    result.push(r_key);
-  }
-  if (result.length > 0) {
-    // debug('zaddAsync ' + REDIS_UPDATE_SET_KEY, model, action, ids, result);
-    await $r().zaddAsync(REDIS_UPDATE_SET_KEY, ...result);
-  }
-  return result;
-}
-
-/**
  * 处理某个c型key的更新及其对应s型key的更新.
  * 注意: 当c型key的值为0时,对应s型key是不存在的.
  * @param {string} r_ckey redis中c型查询key.
  */
-export async function dealSKey(r_ckey) {
+export async function dealCKey(r_ckey) {
   // 1. 解析此key得到model,where,sort条件.
   // 2. 更新总条数c-key
   // 3. 得到此key中的连续score序列段. 比如: 0...100,103...113,156...176,则得到二维数组[[0,100],[103,113],[156,176]].
@@ -344,7 +274,7 @@ export async function dealSKey(r_ckey) {
       prev = curr;
     }
   }
-  debug('dealSKey get query region:', r_skey, arr);
+  debug('dealCKey get query region:', r_skey, arr);
 
   // 分段处理数据库查询,更新到redis,如果某段超过100条,则以100为单位分页查询更新.
   let page_count = 100;
@@ -412,8 +342,8 @@ export async function dealSKey(r_ckey) {
         argsArray.push(dbFlatResult[i]);
       }
       if (argsArray.length > 0) {
+        debug('dealRedisUpdate zaddAsync', r_skey, argsArray);
         resultTmp = await $r().zaddAsync(r_skey, ...argsArray);
-        debug('dealRedisUpdate zaddAsync result:', r_skey, resultTmp);
         await $r().expireAsync(r_skey, EX_SECONDS);
       }
     }

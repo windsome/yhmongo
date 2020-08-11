@@ -2,7 +2,7 @@
 
 require('babel-register');
 const _debug = require('debug').default;
-const debug = _debug('test:cached:query');
+const debug = _debug('test:cached:ops');
 var mongo = require('../../lib');
 var cached = require('../../lib/dbcached');
 const schemas = require('../schemas').schemas;

@@ -1,7 +1,7 @@
 // DEBUG="yh*,test*" node ./test_mqExpire_consume.js 
 require('babel-register');
 const _debug = require('debug').default;
-const debug = _debug('test:cached:consume');
+const debug = _debug('test:cached:mq:consume');
 var cached = require('../../lib/dbcached');
 
 /**
