@@ -26,6 +26,7 @@ import _debug from 'debug';
 const debug = _debug('yh:mongo:dbcached:query');
 import type from '../utils/type';
 import _keys from 'lodash/keys';
+import { indexOf } from 'lodash';
 
 /**
  * 判断某条记录是否在某个查询条件中.
@@ -88,7 +89,12 @@ export function itemFulfillQuery(item, query = {}, op = '', attr = '') {
     case '': {
       // 判断值是否等于条件中值
       let attrValue = getItemAttrValue(item, attr);
-      return attrValue == query;
+      if (type(query) == 'array') {
+        // 需要判断attrValue是否在数组中.
+        return indexOf(query, attrValue) >= 0;
+      } else {
+        return attrValue == query;
+      }
     }
     default: {
       debug('warning! not support op=' + op, query);

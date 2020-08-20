@@ -118,7 +118,7 @@ const REDIS_UPDATE_SET_CKEY = 'redis_update_ckey_set'; // 第二级: c型key集�
  * @param {array/string} ids 影响的id列表,可以为空.
  */
 export async function emitRedisUpdateEvent(model, action, items) {
-  debug('emitRedisUpdateEvent[1]', model, action, items);
+  // debug('emitRedisUpdateEvent', model, action, items);
   // 整理items成数组.
   if (items) {
     let typeofitems = type(items);
@@ -128,7 +128,7 @@ export async function emitRedisUpdateEvent(model, action, items) {
   // 1. 查询出所有此model的c型key.
   let r_key_prefix = model + SEPARATOR + 'c';
   let r_keys = await $r().keysAsync(r_key_prefix + '*');
-  debug('emitRedisUpdateEvent[2]', r_key_prefix, r_keys);
+  // debug('emitRedisUpdateEvent[2]', r_key_prefix, r_keys);
   // 2. 去除c:{_id:xxxx}型key.(这部分key不用变,增删时已经自动增删,更改时不用变化)
   let result1 = [];
   let reg_s_is_id = new RegExp(
@@ -142,7 +142,7 @@ export async function emitRedisUpdateEvent(model, action, items) {
     }
     result1.push(r_key);
   }
-  debug('emitRedisUpdateEvent[3]', result1);
+  // debug('emitRedisUpdateEvent[3]', result1);
   // 3. 找到查询条件能匹配items的ckey
   let result2 = [];
   for (let i = 0; i < result1.length; i++) {
@@ -161,7 +161,7 @@ export async function emitRedisUpdateEvent(model, action, items) {
       continue;
     }
   }
-  debug('emitRedisUpdateEvent[4]', result2);
+  // debug('emitRedisUpdateEvent[4]', result2);
   // 4. 将result2中ckey插入队列.
   let result3 = [];
   for (let i = 0; i < result2.length; i++) {
@@ -169,7 +169,7 @@ export async function emitRedisUpdateEvent(model, action, items) {
     result3.push(result2[i]);
   }
   if (result3.length > 0) {
-    debug('emitRedisUpdateEvent[5]', REDIS_UPDATE_SET_KEY, result3);
+    // debug('emitRedisUpdateEvent[5]', REDIS_UPDATE_SET_KEY, result3);
     await $r().zaddAsync(REDIS_UPDATE_SET_KEY, ...result3);
   }
 
@@ -184,7 +184,12 @@ export async function emitRedisUpdateEvent(model, action, items) {
   const job = await $b().add({
     action
   });
-  debug(`emitRedisUpdateEvent[5] create job ${job.id}`, { type: 1, action });
+  debug(
+    `emitRedisUpdateEvent[5] create job ${job.id}`,
+    { type: 1, action, items },
+    'need update keys',
+    result2
+  );
 
   return result3;
 }
@@ -274,7 +279,7 @@ export async function dealCKey(r_ckey) {
       prev = curr;
     }
   }
-  debug('dealCKey get query region:', r_skey, arr);
+  debug('dealCKey get query region(need to update):', r_skey, arr);
 
   // 分段处理数据库查询,更新到redis,如果某段超过100条,则以100为单位分页查询更新.
   let page_count = 100;
@@ -294,13 +299,13 @@ export async function dealCKey(r_ckey) {
       }
       let options = { where: s_query.where, sort: s_query.sort, limit, skip };
       let result = await _dbRetrieveNoTotal(model, options);
-      debug(
-        'dealRedisUpdate _dbRetrieveNoTotal',
-        { section, s_start, s_stop, s_count, s_try },
-        model,
-        options,
-        result
-      );
+      // debug(
+      //   'dealRedisUpdate _dbRetrieveNoTotal',
+      //   { section, s_start, s_stop, s_count, s_try },
+      //   model,
+      //   options,
+      //   result
+      // );
 
       // 将entity数据插入redis.
       let dbResult = result['result'];
@@ -324,7 +329,7 @@ export async function dealCKey(r_ckey) {
             EX_SECONDS,
             JSON.stringify(item)
           );
-          debug('dealRedisUpdate setAsync', resultTmp, key_d);
+          // debug('dealRedisUpdate setAsync', resultTmp, key_d);
         }
       }
 
@@ -334,7 +339,7 @@ export async function dealCKey(r_ckey) {
         dbFlatSkip,
         dbFlatSkip + limit - 1
       );
-      debug('dealRedisUpdate zremrangebyscore result:', r_skey, resultTmp);
+      // debug('dealRedisUpdate zremrangebyscore result:', r_skey, resultTmp);
       // 更新数据到有序集合.
       let argsArray = [];
       for (let i = 0; i < dbFlatResult.length; i++) {
@@ -342,7 +347,7 @@ export async function dealCKey(r_ckey) {
         argsArray.push(dbFlatResult[i]);
       }
       if (argsArray.length > 0) {
-        debug('dealRedisUpdate zaddAsync', r_skey, argsArray);
+        // debug('dealRedisUpdate zaddAsync', r_skey, argsArray);
         resultTmp = await $r().zaddAsync(r_skey, ...argsArray);
         await $r().expireAsync(r_skey, EX_SECONDS);
       }

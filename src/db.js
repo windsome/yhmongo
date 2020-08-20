@@ -85,7 +85,7 @@ export async function initDb(url, schemas, name) {
 export function $db(name) {
   if (!name) name = 'default';
   let conn = conns[name];
-  debug('$db', name, conn && conn.name);
+  // debug('$db', name, conn && conn.name);
   return conn;
 }
 // export default conn0;
