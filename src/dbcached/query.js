@@ -89,9 +89,14 @@ export function itemFulfillQuery(item, query = {}, op = '', attr = '') {
     case '': {
       // 判断值是否等于条件中值
       let attrValue = getItemAttrValue(item, attr);
+      debug('itemFulfillQuery:', attr, attrValue, query, item);
+
       if (type(query) == 'array') {
         // 需要判断attrValue是否在数组中.
-        return indexOf(query, attrValue) >= 0;
+        for (let i = 0; i < query.length; i++) {
+          if (query[i] == attrValue) return true;
+        }
+        return false;
       } else {
         return attrValue == query;
       }
