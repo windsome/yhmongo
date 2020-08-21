@@ -88,7 +88,7 @@ import { $db } from './db';
  *  + [{path:'desc.ancestor': model:['post']}]
  */
 export async function _retrieve(model, options) {
-  debug('_retrieve', model, options);
+  // debug('_retrieve', model, options);
   let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
@@ -101,12 +101,12 @@ export async function _retrieve(model, options) {
   let { items, result } = await _retrieveNoTotal(model, options);
   result = { ...(result || {}), total };
 
-  debug('_retrieve', model, options, items, result);
+  debug('_retrieve', model, options, items && items.length);
   return { items, result };
 }
 
 export async function _retrieveNoTotal(model, options) {
-  debug('_retrieveNoTotal', model, options);
+  // debug('_retrieveNoTotal', model, options);
   let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
@@ -142,6 +142,7 @@ export async function _retrieveNoTotal(model, options) {
     ...(data || {})
   };
 
+  debug('_retrieveNoTotal', model, options, items && items.length);
   return { items, result };
 }
 
@@ -151,14 +152,15 @@ export async function _retrieveNoTotal(model, options) {
  * @param {object} options
  */
 export async function _count(model, options) {
-  debug('_count', model, options);
   let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
   }
   let { where } = options || {};
   let query = dbModel.find(where || {});
-  return await query.count();
+  let count = await query.count();
+  debug('_count', model, options, count);
+  return count;
 }
 
 /**
@@ -167,7 +169,7 @@ export async function _count(model, options) {
  * @param {object} args
  */
 export async function _createOne(model, args) {
-  debug('_createOne', model, args);
+  // debug('_createOne', model, args);
   let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
@@ -187,6 +189,7 @@ export async function _createOne(model, args) {
     ...(data || {})
   };
 
+  debug('_createOne', model, args, item);
   return { items: [item], result };
   // return item;
 }
@@ -252,7 +255,7 @@ export async function _updateOne(model, where, args, options = { new: true }) {
  * @param {array} items
  */
 export async function _createMany(model, items) {
-  debug('_createMany', model, items);
+  debug('_createMany', model, items && items.length);
   let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
