@@ -114,6 +114,7 @@ export async function _retrieve(model, options) {
   let result = await _retrieveFromRedis(model, options);
   if (result) {
     // 取到足够数据就返回,否则继续去数据库取,并更新进redis.
+    debug('_retrieveFromRedis return from cache!', model, options, result && result.items && result.items.length);
     return result;
   }
 
@@ -137,14 +138,14 @@ export async function _retrieve(model, options) {
   if (!dbFlatSkip) dbFlatSkip = 0;
   // 设置总数c键
   let resultTmp = await $r().setexAsync(key_c, EX_SECONDS, dbFlatTotal);
-  debug('_retrieve setAsync result:', resultTmp);
+  // debug('_retrieve setAsync result:', resultTmp);
   // 删除分数区间的内容. ZREMRANGEBYSCORE key min max
   resultTmp = await $r().zremrangebyscoreAsync(
     key_s,
     dbFlatSkip,
     dbFlatSkip + dbFlatResult.length - 1
   );
-  debug('dealRedisUpdate zremrangebyscore result:', resultTmp, key_s);
+  // debug('dealRedisUpdate zremrangebyscore result:', resultTmp, key_s);
   // // 设置s键,ZADD key score1 member1 [score2 member2]
   let argsArray = [];
   for (let i = 0; i < dbFlatResult.length; i++) {
@@ -154,7 +155,7 @@ export async function _retrieve(model, options) {
   if (argsArray.length > 0) {
     resultTmp = await $r().zaddAsync(key_s, ...argsArray);
     await $r().expireAsync(key_s, EX_SECONDS);
-    debug('_retrieve zaddAsync result:', resultTmp);
+    // debug('_retrieve zaddAsync result:', resultTmp);
   }
   // 遍历entity,设置d键.
   let collections = Object.getOwnPropertyNames(dbFlatEntityMap);
@@ -173,6 +174,7 @@ export async function _retrieve(model, options) {
       );
     }
   }
+  debug('_retrieveFromRedis return from db', model, options, key_c, dbFlatEntityMap);
 
   return result;
 }
@@ -204,7 +206,7 @@ export async function _createOne(model, args) {
   let res = await _dbCreateOne(model, args);
   let item = res.items && res.items[0];
   if (!item) {
-    debug('_createOne fail!');
+    debug('error! _createOne fail!');
     return null;
   }
   // 插入redis缓存. 首先插入根据_id缓存的ckey及skey
@@ -262,7 +264,7 @@ export async function _updateOne(model, where, args, options = { new: true }) {
   let res = await _dbUpdateOne(model, where, args, options);
   let item = res.items && res.items[0];
   if (!item) {
-    debug('_updateOne fail!');
+    debug('error! _updateOne fail!');
     return null;
   }
 
@@ -397,11 +399,6 @@ async function _retrieveFromRedis(model, options) {
   // 两个主key
   let key_c = getRedisKey(model, 'c', where, sort);
   let key_s = getRedisKey(model, 's', where, sort);
-  debug(
-    '_retrieveFromRedis ',
-    { model, options },
-    { skip, limit, key_c, key_s }
-  );
 
   // 查看c-key缓存是否存在.
   let data_c_exists = await $r().existsAsync(key_c);
@@ -410,7 +407,11 @@ async function _retrieveFromRedis(model, options) {
   }
 
   let data_c = await $r().getAsync(key_c);
-  debug('_retrieveFromRedis getAsync', key_c, data_c);
+  debug(
+    '_retrieveFromRedis ',
+    { model, options },
+    { skip, limit, key_c, key_s, data_c }
+  );
   data_c = parseInt(data_c);
   if (data_c <= 0) {
     return {
@@ -436,7 +437,7 @@ async function _retrieveFromRedis(model, options) {
   let count = score2 - score1;
 
   let data = await $r().zrangebyscoreAsync(key_s, score1, score2 - 1);
-  debug('_retrieve zrangebyscore', score1, score2 - 1, data);
+  // debug('_retrieve zrangebyscore', score1, score2 - 1, data);
   if (!data || data.length < count) {
     // 缓存s-key空或者数据不够,触发db查询.
     // TODO: 当redis中c-key值比db中条数多时,会导致不一致问题.
