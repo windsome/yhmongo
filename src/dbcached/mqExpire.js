@@ -246,13 +246,14 @@ export async function dealCKey(r_ckey) {
     where: s_query.where,
     sort: s_query.sort
   });
-  await $r().setexAsync(key_c, EX_SECONDS, data_c);
+  // await $r().setexAsync(key_c, EX_SECONDS, data_c);// 放到后面更新.
 
   let r_skey = getRedisKey(model, 's', s_query.where, s_query.sort);
   // 获取所有内容,ZRANGE key start stop [WITHSCORES]
   let result = await $r().zrangeAsync(r_skey, 0, -1, 'withscores');
   if (!result || result.length == 0) {
     // no data in redis. nothing to deal!
+    await $r().setexAsync(key_c, EX_SECONDS, data_c);
     return true;
   }
 
@@ -353,5 +354,6 @@ export async function dealCKey(r_ckey) {
       }
     }
   }
+  await $r().setexAsync(key_c, EX_SECONDS, data_c);
   return true;
 }
