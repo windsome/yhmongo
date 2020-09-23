@@ -46,7 +46,6 @@ import type from './utils/type';
 import { schema, normalize } from 'normalizr';
 import { camelizeKeys } from 'humps';
 import memoize from 'lodash/memoize';
-// import stringify from 'json-stable-stringify';
 import { stringify } from 'flatted';
 import Errcode, { EC } from './Errcode';
 import { $db } from './db';
