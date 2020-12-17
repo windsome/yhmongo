@@ -57,9 +57,10 @@ export function connectDatabase(url, schemas) {
     return false;
   });
 
-  return conn
+  // console.log('connectDatabase', conn);
+  conn
     .then(ret => {
-      debug(`connectDatabase ${url} ok`);
+      debug(`connectDatabase ${url} ok`, conn.name);
       return conn;
     })
     .catch(error => {
@@ -67,7 +68,7 @@ export function connectDatabase(url, schemas) {
       return conn;
     });
 
-  // return conn;
+  return conn;
 }
 
 export var conns = {};
@@ -75,7 +76,9 @@ export var conns = {};
 
 export async function initDb(url, schemas, name) {
   if (!name) name = 'default';
+  // debug ('initDb1', url, name);
   let conn = await connectDatabase(url, schemas);
+  // debug ('initDb2', url, conn && conn.name);
   conns[name] = conn;
   if (!conns['default']) conns['default'] = conn;
   // if (!conn0) conn0 = conn;
