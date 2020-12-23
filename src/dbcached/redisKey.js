@@ -1,6 +1,6 @@
 import _debug from 'debug';
 const debug = _debug('yh:mongo:dbcached:redisKey');
-import {_memkey, _memParseKey} from 'yhqs'
+import { _memkey, _memParseKey } from 'yhqs';
 
 export const SEPARATOR = '##';
 /**
@@ -47,9 +47,9 @@ export function parseRedisKey(r_key) {
     //当为数据记录型key时,where_data为_id
     where = result[2];
   } else if (type == 's' || type == 'c') {
-    if (result[2]) where = _memParseKey(result[2],'');
+    if (result[2]) where = _memParseKey(result[2], '');
     if (result[3]) {
-      sort = _memParseKey(result[3],'');
+      sort = _memParseKey(result[3], '');
     }
   } else {
     debug('error! not support type:' + type);

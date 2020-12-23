@@ -114,7 +114,12 @@ export async function _retrieve(model, options) {
   let result = await _retrieveFromRedis(model, options);
   if (result) {
     // 取到足够数据就返回,否则继续去数据库取,并更新进redis.
-    debug('_retrieve return from cache!', model, options, result && result.items && result.items.length);
+    debug(
+      '_retrieve return from cache!',
+      model,
+      options,
+      result && result.items && result.items.length
+    );
     return result;
   }
 
