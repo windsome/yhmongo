@@ -210,9 +210,11 @@ export async function _deleteOne(model, where, options) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
   }
   let item = await dbModel.findOne(where, options);
-  if (item) {
-    await dbModel.deleteById(item._id);
+  if (!item) {
+    throw new Errcode('no entity '+model+':' + JSON.stringify(where), EC.ERR_NO_SUCH_ENTITY);
   }
+  
+  await dbModel.deleteById(item._id);
   item = item && item.toObject();
   return item;
 }
