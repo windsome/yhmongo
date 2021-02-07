@@ -114,6 +114,7 @@ export function itemFulfillQuery(item, query = {}, op = '', attr = '') {
  * @param {string} attr
  */
 export function getItemAttrValue(item, attr = '') {
+  if (!value) return null;
   let value = item;
   let atrs = attr.split('.');
   for (let i = 0; i < atrs.length; i++) {
