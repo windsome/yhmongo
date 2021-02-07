@@ -37,6 +37,7 @@ import { indexOf } from 'lodash';
  * @param {json} attr 属性
  */
 export function itemFulfillQuery(item, query = {}, op = '', attr = '') {
+  // debug('itemFulfillQuery:', JSON.stringify({op, attr}), JSON.stringify(query), JSON.stringify(item));
   let typeQuery = type(query);
   if (!op) {
     if (typeQuery == 'object') {
@@ -89,12 +90,17 @@ export function itemFulfillQuery(item, query = {}, op = '', attr = '') {
     case '': {
       // 判断值是否等于条件中值
       let attrValue = getItemAttrValue(item, attr);
-      debug('itemFulfillQuery:', attr, attrValue, query, item);
+      // debug('itemFulfillQuery:', JSON.stringify({op, attr, attrValue}), type(query));
 
       if (type(query) == 'array') {
         // 需要判断attrValue是否在数组中.
         for (let i = 0; i < query.length; i++) {
           if (query[i] == attrValue) return true;
+        }
+        return false;
+      } else if (type(attrValue) == 'array') {
+        for (let i = 0; i < attrValue.length; i++) {
+          if (query == attrValue[i]) return true;
         }
         return false;
       } else {
@@ -114,8 +120,8 @@ export function itemFulfillQuery(item, query = {}, op = '', attr = '') {
  * @param {string} attr
  */
 export function getItemAttrValue(item, attr = '') {
-  if (!value) return null;
   let value = item;
+  if (!value) return null;
   let atrs = attr.split('.');
   for (let i = 0; i < atrs.length; i++) {
     let key = atrs[i];
