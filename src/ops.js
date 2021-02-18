@@ -236,7 +236,7 @@ export async function _deleteOne(model, where, options) {
  * @param {object} options
  */
 export async function _updateOne(model, where, args, options = { new: true }) {
-  debug('_updateOne', model, where, args, options);
+  debug('_updateOne', JSON.stringify({ model, where, args, options }));
   let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
