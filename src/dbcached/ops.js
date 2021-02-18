@@ -116,11 +116,7 @@ export async function _retrieve(model, options) {
     // 取到足够数据就返回,否则继续去数据库取,并更新进redis.
     debug(
       '_retrieve return from cache! ',
-      JSON.stringify({
-        model,
-        count: result && result.items && result.items.length,
-        options
-      })
+      JSON.stringify({ model, options, result })
     );
     return result;
   }
@@ -183,7 +179,7 @@ export async function _retrieve(model, options) {
   }
   debug(
     '_retrieve return from db',
-    JSON.stringify({ model, key_c, options, dbFlatEntityMap })
+    JSON.stringify({ model, key_c, options, result })
   );
 
   return result;
