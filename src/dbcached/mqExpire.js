@@ -186,9 +186,7 @@ export async function emitRedisUpdateEvent(model, action, items) {
   });
   debug(
     `emitRedisUpdateEvent[5] create job ${job.id}`,
-    { type: 1, action, items },
-    'need update keys',
-    result2
+    JSON.stringify({ type: 1, action, items, toUpdateKeys: result2 })
   );
 
   return result3;
@@ -203,7 +201,7 @@ export async function emitRedisUpdateEvent(model, action, items) {
 export async function timelyCheck() {
   // 2. 找REDIS_UPDATE_SET_KEY中最旧的一个key,进行更新.
   let result = await $r().zrangeAsync(REDIS_UPDATE_SET_KEY, 0, 0, 'withscores');
-  debug('timelyCheck', REDIS_UPDATE_SET_KEY, result);
+  debug('timelyCheck', REDIS_UPDATE_SET_KEY, result && JSON.stringify(result));
   if (result && result.length > 0) {
     await $r().zremAsync(REDIS_UPDATE_SET_KEY, result[0]);
     await dealCKey(result[0]);
@@ -216,9 +214,9 @@ export async function timelyCheck() {
     const job = await $b().add({
       count
     });
-    debug(`timelyCheck create job ${job.id}`, { type: 2, count });
+    debug(`timelyCheck create job ${job.id} {type:2, count:${count}}`);
   }
-  debug('timelyCheck finish!');
+  debug('+timelyCheck finish!');
   return true;
 }
 

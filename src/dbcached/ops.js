@@ -115,10 +115,12 @@ export async function _retrieve(model, options) {
   if (result) {
     // 取到足够数据就返回,否则继续去数据库取,并更新进redis.
     debug(
-      '_retrieve return from cache!',
-      model,
-      options,
-      result && result.items && result.items.length
+      '_retrieve return from cache! ',
+      JSON.stringify({
+        model,
+        count: result && result.items && result.items.length,
+        options
+      })
     );
     return result;
   }
@@ -179,7 +181,10 @@ export async function _retrieve(model, options) {
       );
     }
   }
-  debug('_retrieve return from db', model, options, key_c, dbFlatEntityMap);
+  debug(
+    '_retrieve return from db',
+    JSON.stringify({ model, key_c, options, dbFlatEntityMap })
+  );
 
   return result;
 }
@@ -224,7 +229,7 @@ export async function _createOne(model, args) {
   let key_d = getRedisKey(model, 'd', item._id);
   let result = await $r().setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
 
-  debug('_createOne to redis', key_d, result);
+  debug('_createOne to redis', JSON.stringify({ key_d, result }));
   await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.CREATE_ONE, item);
   return res;
 }
@@ -246,12 +251,7 @@ export async function _deleteOne(model, where, options) {
     let result3 = await $r().delAsync(key_c);
     debug(
       '_deleteOne from redis',
-      key_d,
-      key_s,
-      key_c,
-      result1,
-      result2,
-      result3
+      JSON.stringify({ key_d, key_s, key_c, result1, result2, result3 })
     );
     await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.REMOVE_ONE, item);
   }
@@ -269,7 +269,7 @@ export async function _updateOne(model, where, args, options = { new: true }) {
   let res = await _dbUpdateOne(model, where, args, options);
   let item = res.items && res.items[0];
   if (!item) {
-    debug('error! _updateOne fail!');
+    debug('error! _updateOne fail! null item!');
     return null;
   }
 
@@ -282,7 +282,7 @@ export async function _updateOne(model, where, args, options = { new: true }) {
     // await emitRedisUpdateEvent(model, REDIS_UPDATE_ACTION.UPDATE_ONE_PRE, JSON.parse(strOldItem));
   }
   let result = await $r().setexAsync(key_d, EX_SECONDS, JSON.stringify(item));
-  debug('_updateOne to redis', key_d, result);
+  debug('_updateOne to redis', JSON.stringify({ key_d, result }));
   await emitRedisUpdateEvent(
     model,
     REDIS_UPDATE_ACTION.UPDATE_ONE,
@@ -297,7 +297,7 @@ export async function _updateOne(model, where, args, options = { new: true }) {
  * @param {array} items
  */
 export async function _createMany(model, items) {
-  debug('_createMany:', model, items);
+  // debug('_createMany:', model, items);
   let result = await _dbCreateMany(model, items);
   let dbResult = result['result'];
   let dbFlatEntityMap = dbResult['entities'];
@@ -414,8 +414,7 @@ async function _retrieveFromRedis(model, options) {
   let data_c = await $r().getAsync(key_c);
   debug(
     '_retrieveFromRedis ',
-    { model, options },
-    { skip, limit, key_c, key_s, data_c }
+    JSON.stringify({ model, options, skip, limit, key_c, key_s, data_c })
   );
   data_c = parseInt(data_c);
   if (data_c <= 0) {
@@ -466,7 +465,10 @@ async function _retrieveFromRedis(model, options) {
       if (typemodel === 'string') nModel = populate.model;
       else if (typemodel === 'array') nModel = populate.model[0];
       else {
-        debug('warning! not support populate!', { populate, typemodel });
+        debug(
+          'warning! not support populate!',
+          JSON.stringify({ populate, typemodel })
+        );
       }
       entityMap[nModel] = {};
     }
@@ -497,10 +499,13 @@ async function _retrieveFromRedis(model, options) {
           if (typemodel === 'string') nModel = populate.model;
           else if (typemodel === 'array') nModel = populate.model[0];
           else {
-            debug('warning! not support populate!', {
-              populate,
-              typemodel
-            });
+            debug(
+              'warning! not support populate!',
+              JSON.stringify({
+                populate,
+                typemodel
+              })
+            );
           }
 
           if (populate.path) {
@@ -514,10 +519,13 @@ async function _retrieveFromRedis(model, options) {
                   else if (typemodel === 'array') nIds = subitem[attr];
                   // id数组.
                   else {
-                    debug('warning! not support populate!', {
-                      populate,
-                      typemodel
-                    });
+                    debug(
+                      'warning! not support populate!',
+                      JSON.stringify({
+                        populate,
+                        typemodel
+                      })
+                    );
                   }
                 }
                 subitem = subitem[attr];
@@ -549,7 +557,7 @@ async function _retrieveFromRedis(model, options) {
   }
   if (missing.length > 0) {
     // 丢失了部分条目的内容.
-    debug('warning! missing ', model, missing);
+    debug('warning! missing ', JSON.stringify({ model, missing }));
     return null;
   }
   let result = {

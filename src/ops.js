@@ -100,7 +100,10 @@ export async function _retrieve(model, options) {
   let { items, result } = await _retrieveNoTotal(model, options);
   result = { ...(result || {}), total };
 
-  debug('_retrieve', model, options, items && items.length);
+  debug(
+    '_retrieve',
+    JSON.stringify({ model, count: items && items.length, options })
+  );
   return { items, result };
 }
 
@@ -141,7 +144,10 @@ export async function _retrieveNoTotal(model, options) {
     ...(data || {})
   };
 
-  debug('_retrieveNoTotal', model, options, items && items.length);
+  debug(
+    '_retrieveNoTotal',
+    JSON.stringify({ model, count: items && items.length, options })
+  );
   return { items, result };
 }
 
@@ -158,7 +164,7 @@ export async function _count(model, options) {
   let { where } = options || {};
   let query = dbModel.find(where || {});
   let count = await query.count();
-  debug('_count', model, options, count);
+  debug('_count', JSON.stringify({ model, count, options }));
   return count;
 }
 
@@ -188,7 +194,7 @@ export async function _createOne(model, args) {
     ...(data || {})
   };
 
-  debug('_createOne', model, args, item);
+  debug('_createOne', JSON.stringify({ model, args, item }));
   return { items: [item], result };
   // return item;
 }
@@ -200,7 +206,7 @@ export async function _createOne(model, args) {
  * @param {object} options
  */
 export async function _deleteOne(model, where, options) {
-  debug('_deleteOne', model, where, options);
+  debug('_deleteOne', JSON.stringify({ model, where, options }));
   // let item = await $db().models[model].findOneAndDelete(where, options);
   // item = item && item.toObject();
   // return item;
@@ -259,7 +265,7 @@ export async function _updateOne(model, where, args, options = { new: true }) {
  * @param {array} items
  */
 export async function _createMany(model, items) {
-  debug('_createMany', model, items && items.length);
+  debug('_createMany', JSON.stringify({ count: items && items.length, model }));
   let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
@@ -289,7 +295,7 @@ export async function _createMany(model, items) {
  * @param {object} options
  */
 export async function _updateMany(model, where, args, options) {
-  debug('_updateMany', model, where, args, options);
+  debug('_updateMany', JSON.stringify({ model, where, args, options }));
   let dbModel = $db().models[model];
   if (!dbModel) {
     throw new Errcode('no such model ' + model, EC.ERR_NO_SUCH_ENTITY);
@@ -372,7 +378,10 @@ export function createSchemaWithPopulates(model, populates, options = {}) {
                 new schema.Entity(populate.model[0], {}, options)
               ];
             else {
-              debug('warning! not support populate!', { populate, typemodel });
+              debug(
+                'warning! not support populate!',
+                JSON.stringify({ populate, typemodel })
+              );
             }
           } else tmpdefinition[attr] = {};
           tmpdefinition = tmpdefinition[attr];
