@@ -126,6 +126,10 @@ export function getItemAttrValue(item, attr = '') {
   for (let i = 0; i < atrs.length; i++) {
     let key = atrs[i];
     value = value[key];
+    if (!value) {
+      // 未找到key值.
+      break;
+    }
   }
   return value;
 }
