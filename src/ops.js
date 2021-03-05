@@ -218,7 +218,7 @@ export async function _deleteOne(model, where, options) {
   let item = await dbModel.findOne(where, options);
   if (!item) {
     throw new Errcode(
-      'no entity ' + model + ':' + JSON.stringify(where),
+      'no entity in ' + model + ': ' + JSON.stringify(where),
       EC.ERR_NO_SUCH_ENTITY
     );
   }

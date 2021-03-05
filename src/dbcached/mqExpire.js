@@ -59,6 +59,7 @@ export function initExpire() {
     }
 
     done();
+    // await job.remove();
     // job.moveToCompleted();
     // await job.finished();
     return result;
@@ -84,6 +85,9 @@ export function initExpire() {
         debug(`${evt} Job ${job}`);
       } else if (evt == 'failed') {
         debug(`${evt} Job ${job.id}, err ${other[0]}`);
+      } else if (evt == 'completed') {
+        debug(`${evt} Job ${job.id}, err ${other[0]}`);
+        job.remove();
       } else debug(`${evt} Job ${job && job.id}!`);
     })
   );
