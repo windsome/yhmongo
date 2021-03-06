@@ -181,7 +181,11 @@ export async function emitRedisUpdateEvent(model, action, items) {
   // let s_key_prefix = model + SEPARATOR + 's';
   for (let i = 0; i < result2.length; i++) {
     let r_key = result2[i];
-    await $r().renameAsync(r_key, 'x-' + r_key);
+    try {
+      await $r().renameAsync(r_key, 'x-' + r_key);
+    } catch (error) {
+      debug('warning! emitRedisUpdateEvent!', error.message);
+    }
   }
 
   // 6. 在任务队列中增加一项.

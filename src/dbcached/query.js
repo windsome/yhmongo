@@ -77,6 +77,11 @@ export function itemFulfillQuery(item, query = {}, op = '', attr = '') {
       let attrValue = getItemAttrValue(item, attr);
       return query.indexOf(attrValue) >= 0;
     }
+    case '$ne': {
+      //$in,可以判断item的属性值是否在其中.
+      let attrValue = getItemAttrValue(item, attr);
+      return query != attrValue;
+    }
     case '$gt': {
       // 判断值是否大于条件中值
       let attrValue = getItemAttrValue(item, attr);
